@@ -1,0 +1,20 @@
+# Generated/cache files
+__pycache__/
+*.pyc
+*.pyo
+.tools/
+
+# Local installer backups / generated artifacts
+linux_maplestory-backups/
+backups/
+*.log
+.payload/
+
+# Downloaded/extracted proprietary payloads: keep out of git
+files/
+files.zip
+*.zip
+
+# Generated virtual desktop patches, except bundled default
+patches/02-virtual-desktop-*.reg
+!patches/02-virtual-desktop-3840x2160.reg

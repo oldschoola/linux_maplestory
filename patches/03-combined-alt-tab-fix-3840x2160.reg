@@ -1,0 +1,10 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\Wine\X11 Driver]
+"UseTakeFocus"="N"
+
+[HKEY_CURRENT_USER\Software\Wine\Explorer]
+"Desktop"="Default"
+
+[HKEY_CURRENT_USER\Software\Wine\Explorer\Desktops]
+"Default"="3840x2160"

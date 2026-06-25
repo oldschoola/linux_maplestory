@@ -1,0 +1,43 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\Nexon Launcher]
+"Install Directory"="C:\\Nexon\\Launcher"
+"Region"="1"
+"User Data"="{\"setup-id\":\"372e7640-20f4-419c-ada0-4ad0d76c33d9\",\"time\":1748271149}"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\Applications\nexon_launcher.exe\shell\open]
+"FriendlyAppName"="Nexon Launcher"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\nxl]
+@="URL:nxl protocol"
+"URL Protocol"=""
+
+[HKEY_LOCAL_MACHINE\Software\Classes\nxl\DefaultIcon]
+@="C:\\Nexon\\Launcher\\nexon_launcher.exe"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\nxl\shell]
+@=""
+
+[HKEY_LOCAL_MACHINE\Software\Classes\nxl\shell\open]
+@=""
+"Friendly App Name"="Nexon Launcher"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\nxl\shell\open\command]
+@="\"C:\\Nexon\\Launcher\\nexon_launcher.exe\" \"%1\""
+
+[HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Nexon Nexon Launcher]
+"DisplayIcon"="\"C:\\Nexon\\Launcher\\logo.ico\""
+"DisplayName"="Nexon Launcher"
+"DisplayVersion"="2.3.0"
+"EstimatedSize"=dword:00002b48
+"HelpLink"="\"http://www.nexon.net/legal/terms-of-use/\""
+"InstallLocation"="\"C:\\Nexon\\Launcher\""
+"NoModify"=dword:00000001
+"NoRepair"=dword:00000001
+"Publisher"="Nexon"
+"QuietUninstallString"="\"C:\\Nexon\\Launcher\\uninstall.exe\" /S"
+"UninstallString"="\"C:\\Nexon\\Launcher\\uninstall.exe\""
+"URLInfoAbout"="\"http://www.nexon.net\""
+"URLUpdateInfo"="\"http://www.nexon.net\""
+"VersionMajor"=dword:00000002
+"VersionMinor"=dword:00000003
