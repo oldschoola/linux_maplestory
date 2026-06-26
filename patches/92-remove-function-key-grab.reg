@@ -2,15 +2,8 @@ Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\Software\Wine\X11 Driver]
 "Grab"=-
-"GrabFullscreen"="Y"
+"GrabFullscreen"=-
 "UseLinuxInputEvents"=-
-"UseTakeFocus"="N"
-
-[HKEY_CURRENT_USER\Software\Wine\Explorer]
-"Desktop"="Default"
-
-[HKEY_CURRENT_USER\Software\Wine\Explorer\Desktops]
-"Default"="3840x2160"
 
 [HKEY_CURRENT_USER\Software\Wine\DirectInput]
 "KeyboardUseNonExclusive"=-

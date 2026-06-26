@@ -143,9 +143,9 @@ Do not copy/share another user's whole Steam config or Proton prefix.
   - Launch MapleStory once through Steam to create it, then apply this repo's patches into that prefix.
   - Do not share the entire `pfx`; it contains machine/account-specific registry state, caches, and potentially login/session data.
 
-## Manual alt-tab/input patches
+## Manual alt-tab/input/function-key patches
 
-Use this only if you do not want the all-in-one installer.
+Use this only if you do not want the all-in-one installer. The 3840x2160 combined patch includes the focus, virtual desktop, and F1-F12/function-key grab settings.
 
 ```bash
 cd /path/to/linux_maplestory
@@ -167,11 +167,12 @@ SteamAppId="$APPID" SteamGameId="$APPID" \
 "$PROTON" run regedit /S patches/03-combined-alt-tab-fix-3840x2160.reg
 ```
 
-For a different monitor size:
+For a different monitor size, generate a monitor-specific virtual desktop patch and import it together with the focus/function-key patches:
 
 ```bash
 cd /path/to/linux_maplestory
 patches/make-virtual-desktop-patch.sh 2560x1440
+# import patches/01-usetakefocus.reg, patches/02-virtual-desktop-2560x1440.reg, and patches/04-function-key-grab.reg
 ```
 
 ## Manual launch/runtime patch set
@@ -215,23 +216,24 @@ SteamAppId="$APPID" SteamGameId="$APPID" \
 ## Test
 
 1. Get to a screen where MapleStory accepts keyboard input.
-2. Confirm input works before alt-tabbing.
+2. Confirm movement, regular skill keys, `Alt+1` through `Alt+5`, `Escape`, `Enter`, and `F1` through `F12` work before alt-tabbing.
 3. Alt-tab away.
 4. Return to MapleStory.
-5. Confirm keyboard input still works.
+5. Confirm the same keys still reach the game client.
 
 ## Rollback
 
-Close MapleStory first. Then import one or both rollback patches with the same Proton import shape:
+Close MapleStory first. Then import rollback patches with the same Proton import shape:
 
 ```bash
 cd /path/to/linux_maplestory
-# import patches/90-disable-virtual-desktop.reg and/or patches/91-remove-usetakefocus.reg
+# import patches/90-disable-virtual-desktop.reg, patches/91-remove-usetakefocus.reg, and/or patches/92-remove-function-key-grab.reg
 ```
 
 ## Notes
 
 - Gamescope was tried before and did not fix the alt-tab input problem on the reference setup.
 - The first focus patch alone (`UseTakeFocus=N`) was not enough for the reported failure. The virtual desktop patch is the important one for this MapleStory alt-tab case.
+- `patches/04-function-key-grab.reg` turns Wine fullscreen grabbing back on with `GrabFullscreen=Y` so function keys are kept inside the Wine/XWayland game window, and removes stale experimental non-exclusive DirectInput/input-event registry values from earlier testing.
 - If `regedit` does not exit, the prefix is probably still active. Fully close MapleStory/Steam launch helpers, then run the import again.
 
