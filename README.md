@@ -101,6 +101,8 @@ Useful options:
 - `--dry-run` prints what would happen without modifying files or registry.
 - `--kill` terminates running MapleStory/Nexon helper processes before patching.
 - `--install-proton-settings` adds the documented Proton env settings to that Proton tool's `user_settings.py`; this is off by default because it affects every game using that Proton build.
+- `--fix-fkeys` sets `hid_apple fnmode=2` for this boot so Apple-compatible keyboards send real `F1`-`F12`; this requires sudo and is off by default because it is system-wide.
+- `--persist-fkeys` also writes the reboot-persistent `hid_apple fnmode=2` config; use this only after the temporary F-key fix works for you.
 - `--skip-runtime` applies only the alt-tab/input registry patches and does not download patch files.
 - `--skip-alt-tab` applies only the launch/runtime patch set.
 - `--steam-root PATH`, `--prefix-dir PATH`, and `--proton PATH` override auto-detection.
@@ -111,7 +113,9 @@ The installer does not copy another user's Steam config or whole `pfx`; it patch
 
 KDE global shortcuts are not the expected cause for bare `F1` through `F12`: the reference KDE config only binds modified combinations like `Ctrl+F1`, `Alt+F1`, or `Meta+F1`.
 
-On the reference machine, the active keyboard is an IQUNIX F97 that reports USB vendor `05ac`, so Linux handles it with the `hid_apple` kernel driver even though the machine is running KDE/Linux. With `hid_apple fnmode=3`, the top row may send media keys by default instead of real `F1` through `F12`.
+On the reference machine, the active keyboard is an IQUNIX F97 that reports USB vendor `05ac`, so Linux handles it with the `hid_apple` kernel driver even though the desktop session is KDE/Linux. With `hid_apple fnmode=3`, the top row can send media keys by default instead of real `F1` through `F12`.
+
+Confirmed reference fix: setting `hid_apple fnmode=2` made plain `F1`-`F12` reach MapleStory.
 
 Quick confirmation: if `Fn+F1` works in MapleStory but plain `F1` does not, this is the issue.
 
@@ -119,17 +123,24 @@ Temporary fix until reboot:
 
 ```bash
 cd /path/to/linux_maplestory
-patches/20-hid-apple-fkeysfirst.sh
+./install.sh --skip-runtime --skip-alt-tab --fix-fkeys
 ```
 
-Persistent fix:
+Direct helper equivalent:
 
 ```bash
 cd /path/to/linux_maplestory
-patches/20-hid-apple-fkeysfirst.sh --persist
+patches/20-hid-apple-fkeysfirst.sh
 ```
 
-This script sets `hid_apple fnmode=2`, which makes the top row send real `F1`-`F12` first. It is intentionally not applied automatically by `install.sh` because it is a system-wide keyboard setting and requires sudo.
+Persistent fix after the temporary fix has worked:
+
+```bash
+cd /path/to/linux_maplestory
+./install.sh --skip-runtime --skip-alt-tab --persist-fkeys
+```
+
+This sets `hid_apple fnmode=2`, which makes the top row send real `F1`-`F12` first. It is intentionally not applied by default because it is a system-wide keyboard setting and requires sudo.
 
 
 ## Lutris installer
@@ -241,7 +252,7 @@ SteamAppId="$APPID" SteamGameId="$APPID" \
 
 1. Get to a screen where MapleStory accepts keyboard input.
 2. Confirm movement, regular skill keys, `Alt+1` through `Alt+5`, `Escape`, `Enter`, and `F1` through `F12` work.
-3. If plain `F1` through `F12` fail, test `Fn+F1`. If `Fn+F1` works, apply the `hid_apple fnmode=2` fix above.
+3. If plain `F1` through `F12` fail, test `Fn+F1`. If `Fn+F1` works, apply the `hid_apple fnmode=2` fix above, relaunch MapleStory if needed, then retest.
 4. Alt-tab away and return to MapleStory.
 5. Confirm the same keys still reach the game client.
 

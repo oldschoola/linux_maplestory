@@ -31,12 +31,14 @@ script:
             rm -rf "$repo"
             git clone --depth=1 https://github.com/oldschoola/linux_maplestory.git "$repo"
           fi
-          chmod +x "$repo/install.sh" "$repo/patches/13-apply-runtime-file-patches.sh" "$repo/patches/make-virtual-desktop-patch.sh"
+          chmod +x "$repo/install.sh" "$repo/patches/13-apply-runtime-file-patches.sh" "$repo/patches/make-virtual-desktop-patch.sh" "$repo/patches/20-hid-apple-fkeysfirst.sh"
           "$repo/install.sh" --kill --desktop-size "$INPUT_DESKTOP_SIZE"
 
 install_complete_text: |
   Lutris installed the Steam MapleStory entry and ran the linux_maplestory Proton patch bundle.
 
   Launch MapleStory through this Lutris entry or through Steam. Do not run MapleStory.exe directly; Steam provides the Nexon launch ticket through nxsteam.exe.
+
+  If plain F1-F12 do not reach the game on an Apple-compatible keyboard, run patches/20-hid-apple-fkeysfirst.sh manually from a terminal in the cloned linux_maplestory repo, or rerun install.sh with --fix-fkeys. Lutris does not apply this automatically because the system-wide keyboard setting requires sudo.
 
   This is still WIP. Nexon/BlackCipher anti-cheat may reject or break this setup after updates.

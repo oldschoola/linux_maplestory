@@ -14,6 +14,8 @@ PAYLOAD_DIR="${PAYLOAD_DIR:-${PATCH_FILES_DIR:-}}"
 APPLY_RUNTIME=1
 APPLY_ALT_TAB=1
 INSTALL_PROTON_SETTINGS=0
+APPLY_FKEYS=0
+PERSIST_FKEYS=0
 KILL_RUNNING=0
 DRY_RUN=0
 
@@ -49,6 +51,8 @@ Options:
   --launcher-source PATH         Path to a Nexon Launcher directory containing nexon_launcher.exe
   --mac-bottle PATH              Mac bottle root containing drive_c/Nexon/Launcher
   --install-proton-settings      Add a marked linux_maplestory block to Proton's user_settings.py
+  --fix-fkeys                   Set hid_apple fnmode=2 for this boot so Apple-compatible keyboards send F1-F12
+  --persist-fkeys               Also persist hid_apple fnmode=2 across reboots; implies --fix-fkeys
   --skip-runtime                 Skip runtime/DLL/Nexon launcher file patches and runtime registry imports
   --skip-alt-tab                 Skip UseTakeFocus/virtual-desktop registry patches
   --kill                         Terminate running MapleStory/Nexon helper processes before patching
@@ -87,6 +91,8 @@ while [ "$#" -gt 0 ]; do
     --launcher-source) NEXON_LAUNCHER_SOURCE="${2:?missing value for --launcher-source}"; shift 2 ;;
     --mac-bottle) MAC_BOTTLE="${2:?missing value for --mac-bottle}"; shift 2 ;;
     --install-proton-settings) INSTALL_PROTON_SETTINGS=1; shift ;;
+    --fix-fkeys) APPLY_FKEYS=1; shift ;;
+    --persist-fkeys) APPLY_FKEYS=1; PERSIST_FKEYS=1; shift ;;
     --skip-runtime) APPLY_RUNTIME=0; shift ;;
     --skip-alt-tab) APPLY_ALT_TAB=0; shift ;;
     --kill) KILL_RUNNING=1; shift ;;
@@ -269,6 +275,9 @@ preflight_bundle() {
   require_file "$PATCH_DIR/12-proton-user-settings.py"
   require_file "$PATCH_DIR/13-apply-runtime-file-patches.sh"
   require_file "$PATCH_DIR/make-virtual-desktop-patch.sh"
+  if [ "$APPLY_FKEYS" -eq 1 ]; then
+    require_file "$PATCH_DIR/20-hid-apple-fkeysfirst.sh"
+  fi
   if [ "$APPLY_RUNTIME" -eq 1 ] && [ "$DRY_RUN" -eq 0 ]; then
     payload_ready || die "payload files are missing; rerun with network access or --payload-zip /path/to/files.zip"
   fi
@@ -424,6 +433,38 @@ user_settings.update({
 PY
 }
 
+apply_fkey_patch() {
+  [ "$APPLY_FKEYS" -eq 1 ] || return 0
+  local script="$PATCH_DIR/20-hid-apple-fkeysfirst.sh"
+  local mode_message="for this boot"
+  local args=()
+  if [ "$PERSIST_FKEYS" -eq 1 ]; then
+    mode_message="with reboot persistence"
+    args=(--persist)
+  fi
+
+  log "Applying F1-F12 hardware-mode patch $mode_message"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '[dry-run] bash %q' "$script"
+    if [ "${#args[@]}" -gt 0 ]; then
+      printf ' %q' "${args[@]}"
+    fi
+    printf '\n'
+    return 0
+  fi
+
+  if bash "$script" "${args[@]}"; then
+    return 0
+  fi
+
+  if [ "$APPLY_RUNTIME" -eq 0 ] && [ "$APPLY_ALT_TAB" -eq 0 ] && [ "$INSTALL_PROTON_SETTINGS" -eq 0 ]; then
+    die "F1-F12 hardware-mode patch failed or was cancelled"
+  fi
+
+  log "F1-F12 hardware-mode patch failed or was cancelled; the prefix install remains applied."
+  log "Run patches/20-hid-apple-fkeysfirst.sh manually from a terminal if F1-F12 still fail."
+}
+
 warn_hid_apple_fnmode() {
   local param="/sys/module/hid_apple/parameters/fnmode"
   [ -r "$param" ] || return 0
@@ -431,8 +472,8 @@ warn_hid_apple_fnmode() {
   mode="$(cat "$param" 2>/dev/null || true)"
   [ "$mode" = "2" ] && return 0
   log "Notice: hid_apple fnmode is $mode, not 2. Some Apple-compatible keyboards send media keys instead of F1-F12 in this mode."
-  log "If F1-F12 do not reach MapleStory, try: patches/20-hid-apple-fkeysfirst.sh"
-  log "For reboot persistence after testing, run: patches/20-hid-apple-fkeysfirst.sh --persist"
+  log "If F1-F12 do not reach MapleStory, run: ./install.sh --skip-runtime --skip-alt-tab --fix-fkeys"
+  log "For reboot persistence after testing, run: ./install.sh --skip-runtime --skip-alt-tab --persist-fkeys"
 }
 
 verify_install() {
@@ -446,6 +487,13 @@ verify_install() {
     require_file "$PFX/drive_c/Nexon/Launcher/nexon_launcher.exe"
   fi
 }
+
+if [ "$APPLY_FKEYS" -eq 1 ] && [ "$APPLY_RUNTIME" -eq 0 ] && [ "$APPLY_ALT_TAB" -eq 0 ] && [ "$INSTALL_PROTON_SETTINGS" -eq 0 ]; then
+  require_file "$PATCH_DIR/20-hid-apple-fkeysfirst.sh"
+  apply_fkey_patch
+  log "F1-F12 hardware-mode patch complete"
+  exit 0
+fi
 
 ensure_payload
 preflight_bundle
@@ -461,6 +509,7 @@ apply_alt_tab_patches
 apply_runtime_registry
 install_proton_settings
 verify_install
+apply_fkey_patch
 warn_hid_apple_fnmode
 
 log "Install complete"
