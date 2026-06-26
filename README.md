@@ -1,6 +1,6 @@
 # Linux MapleStory setup guide
 
-![MapleStory Linux icon](maplestorylinux.png)
+<img src="maplestorylinux.png" alt="MapleStory Linux icon" width="200">
 
 This repo documents and automates the Linux/Proton setup used to run the Steam Windows build of MapleStory.
 
