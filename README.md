@@ -4,6 +4,8 @@
 
 This repo documents and automates the Linux/Proton setup used to run the Steam Windows build of MapleStory.
 
+![Screenshot](screen.png)
+
 ## What this repo does not include
 
 The GitHub repo intentionally does **not** track proprietary patch files:
