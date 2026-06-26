@@ -1,5 +1,7 @@
 # Linux MapleStory setup guide
 
+![MapleStory Linux icon](maplestorylinux.png)
+
 This repo documents and automates the Linux/Proton setup used to run the Steam Windows build of MapleStory.
 
 ## What this repo does not include
@@ -36,7 +38,7 @@ Adjust paths for your Steam library.
 
 ## Discord / support
 
-If you need help, if this breaks, or if you find a better fix, contact `counterstrikeproaimer` on Discord.
+Join our server if you need help! https://discord.gg/eDhWPJVyBF
 
 ## Disclaimer
 
