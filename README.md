@@ -44,7 +44,8 @@ Join our server if you need help! https://discord.gg/eDhWPJVyBF
 
 ## Disclaimer
 
-WARNING: this is very WIP. Although this setup uses files from the MapleStory Mac package/runtime path, Nexon/BlackCipher anti-cheat may still reject, break, or flag the setup. Use at your own risk, keep backups, and expect updates to break things.
+WARNING: this is very WIP. Although this setup uses files from the MapleStory Mac package/runtime path, Nexon/BlackCipher anti-cheat may still reject, break, or flag the setup. Use at your own risk, and expect updates to break things. I play on my main with it personaly.
+This patch does not touch the anticheat at all and in fact it still runs along side the game, like the MacOS version. I am using the mac os wine environment files and registry edits to make this work. This patch with the help of AI took under 40 minutes to make.
 
 ## Required patch layout
 
