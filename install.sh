@@ -264,7 +264,6 @@ ensure_payload() {
 
 preflight_bundle() {
   require_file "$PATCH_DIR/01-usetakefocus.reg"
-  require_file "$PATCH_DIR/04-function-key-grab.reg"
   require_file "$PATCH_DIR/10-nexon-launcher-protocol.reg"
   require_file "$PATCH_DIR/11-wine-direct3d-dll-overrides.reg"
   require_file "$PATCH_DIR/12-proton-user-settings.py"
@@ -372,7 +371,6 @@ apply_alt_tab_patches() {
   else
     reg_import "$desktop_patch"
   fi
-  reg_import "$PATCH_DIR/04-function-key-grab.reg"
 }
 
 apply_runtime_registry() {
