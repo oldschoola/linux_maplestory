@@ -107,6 +107,31 @@ Useful options:
 
 The installer does not copy another user's Steam config or whole `pfx`; it patches the local prefix created by Steam.
 
+## F1-F12 / function-key hardware mode
+
+KDE global shortcuts are not the expected cause for bare `F1` through `F12`: the reference KDE config only binds modified combinations like `Ctrl+F1`, `Alt+F1`, or `Meta+F1`.
+
+On the reference machine, the active keyboard is an IQUNIX F97 that reports USB vendor `05ac`, so Linux handles it with the `hid_apple` kernel driver even though the machine is running KDE/Linux. With `hid_apple fnmode=3`, the top row may send media keys by default instead of real `F1` through `F12`.
+
+Quick confirmation: if `Fn+F1` works in MapleStory but plain `F1` does not, this is the issue.
+
+Temporary fix until reboot:
+
+```bash
+cd /path/to/linux_maplestory
+patches/20-hid-apple-fkeysfirst.sh
+```
+
+Persistent fix:
+
+```bash
+cd /path/to/linux_maplestory
+patches/20-hid-apple-fkeysfirst.sh --persist
+```
+
+This script sets `hid_apple fnmode=2`, which makes the top row send real `F1`-`F12` first. It is intentionally not applied automatically by `install.sh` because it is a system-wide keyboard setting and requires sudo.
+
+
 ## Lutris installer
 
 This repo also includes a local Lutris installer:
@@ -215,10 +240,10 @@ SteamAppId="$APPID" SteamGameId="$APPID" \
 ## Test
 
 1. Get to a screen where MapleStory accepts keyboard input.
-2. Confirm input works before alt-tabbing.
-3. Alt-tab away.
-4. Return to MapleStory.
-5. Confirm keyboard input still works.
+2. Confirm movement, regular skill keys, `Alt+1` through `Alt+5`, `Escape`, `Enter`, and `F1` through `F12` work.
+3. If plain `F1` through `F12` fail, test `Fn+F1`. If `Fn+F1` works, apply the `hid_apple fnmode=2` fix above.
+4. Alt-tab away and return to MapleStory.
+5. Confirm the same keys still reach the game client.
 
 ## Rollback
 
@@ -234,4 +259,5 @@ cd /path/to/linux_maplestory
 - Gamescope was tried before and did not fix the alt-tab input problem on the reference setup.
 - The first focus patch alone (`UseTakeFocus=N`) was not enough for the reported failure. The virtual desktop patch is the important one for this MapleStory alt-tab case.
 - If `regedit` does not exit, the prefix is probably still active. Fully close MapleStory/Steam launch helpers, then run the import again.
+- If bare `F1`-`F12` do not work on an Apple-compatible keyboard under KDE/Linux, check `/sys/module/hid_apple/parameters/fnmode`. `fnmode=2` means function keys first.
 

@@ -424,6 +424,17 @@ user_settings.update({
 PY
 }
 
+warn_hid_apple_fnmode() {
+  local param="/sys/module/hid_apple/parameters/fnmode"
+  [ -r "$param" ] || return 0
+  local mode
+  mode="$(cat "$param" 2>/dev/null || true)"
+  [ "$mode" = "2" ] && return 0
+  log "Notice: hid_apple fnmode is $mode, not 2. Some Apple-compatible keyboards send media keys instead of F1-F12 in this mode."
+  log "If F1-F12 do not reach MapleStory, try: patches/20-hid-apple-fkeysfirst.sh"
+  log "For reboot persistence after testing, run: patches/20-hid-apple-fkeysfirst.sh --persist"
+}
+
 verify_install() {
   [ "$DRY_RUN" -eq 0 ] || return 0
   log "Verifying installed files"
@@ -450,6 +461,7 @@ apply_alt_tab_patches
 apply_runtime_registry
 install_proton_settings
 verify_install
+warn_hid_apple_fnmode
 
 log "Install complete"
 log "Backups: $BACKUP_DIR"
