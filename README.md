@@ -306,6 +306,8 @@ to restore it. If relaunching still closes after the Nexon Launcher, the logs be
 
    Reproduce the crash, then send the Proton log. Modern Proton/GE-Proton writes it to **`~/steam-216150.log`** (`$HOME/steam-<appid>.log`, or `$PROTON_LOG_DIR/...` if that is set). If it's not there, find it with `find ~ /tmp -maxdepth 2 -name 'steam-216150.log'`. It captures DLL load failures, unhandled exceptions, X errors, and anti-cheat (`BlackCipher`/`DwarfAxe`) failures — usually enough to pinpoint the cause in one file. (`./install.sh --install-proton-settings` also enables `PROTON_LOG`, but it affects every game sharing that Proton build and costs performance; the per-game launch option is preferred for diagnosis.)
 
+   **Anti-cheat caveat — read before enabling logging.** `PROTON_LOG` (and the Wine debug channels it turns on) can *itself* trip Nexon Game Security — `NGClient64.aes` / `gamescale64.dll` have been observed to fast-fail (`Unhandled exception code c0000409`) in an instrumented environment. If the game launches cleanly with logging **off** but only dies with it **on**, the logging is the trigger, not a genuine bug. Always test a clean launch (no `PROTON_LOG`) first; enable logging only to diagnose an already-broken launch.
+
 2. **Console output (fastest signal).** Launch from a terminal or the Steam console. The `BadWindow`/`X_CreateWindow` error prints here immediately — see the bullet above for the fix (`--virtual-desktop`).
 
 3. **Nexon Launcher logs**, in the prefix, show whether the handoff to `nxsteam` succeeded:
