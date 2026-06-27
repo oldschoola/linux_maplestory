@@ -164,9 +164,9 @@ lutris -i /path/to/linux_maplestory/maplestory-lutris.yaml
 What it does:
 
 - Creates a Lutris Steam-runner entry for Steam app id `216150`.
-- Prompts for the Wine virtual desktop size.
+- Prompts whether to enable the Wine virtual desktop (off by default; only needed for the `BadWindow`/`X_CreateWindow` launch crash or alt-tab input loss under XWayland).
 - Clones/updates this repo into Lutris cache.
-- Runs `install.sh --kill --desktop-size <selected size>`.
+- Runs `install.sh --kill` (adds `--desktop-size <size>` only if you pick a size).
 
 MapleStory must still be installed through Steam and launched once first so the Proton prefix exists. The Lutris entry launches the Steam build; it does not run `MapleStory.exe` directly.
 

@@ -11,13 +11,14 @@ script:
 
   installer:
     - input_menu:
-        description: "Choose the Wine virtual desktop size. Pick the monitor resolution you play MapleStory on."
+        description: "Enable the Wine virtual desktop? Off by default — only needed for the BadWindow/X_CreateWindow launch crash or alt-tab input loss under XWayland. Pick a size to enable it."
         id: DESKTOP_SIZE
         options:
+          - "disabled": "No virtual desktop (default)"
           - "3840x2160": "3840x2160 / 4K"
           - "2560x1440": "2560x1440 / 1440p"
           - "1920x1080": "1920x1080 / 1080p"
-        preselect: "3840x2160"
+        preselect: "disabled"
     - execute:
         disable_runtime: true
         working_dir: $CACHE
@@ -32,7 +33,11 @@ script:
             git clone --depth=1 https://github.com/oldschoola/linux_maplestory.git "$repo"
           fi
           chmod +x "$repo/install.sh" "$repo/patches/13-apply-runtime-file-patches.sh" "$repo/patches/make-virtual-desktop-patch.sh" "$repo/patches/20-hid-apple-fkeysfirst.sh"
-          "$repo/install.sh" --kill --desktop-size "$INPUT_DESKTOP_SIZE"
+          if [ "$INPUT_DESKTOP_SIZE" = "disabled" ]; then
+            "$repo/install.sh" --kill
+          else
+            "$repo/install.sh" --kill --desktop-size "$INPUT_DESKTOP_SIZE"
+          fi
 
 install_complete_text: |
   Lutris installed the Steam MapleStory entry and ran the linux_maplestory Proton patch bundle.
