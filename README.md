@@ -290,7 +290,13 @@ cd /path/to/linux_maplestory
 
 ### Collecting logs
 
-If the game closes right after the Nexon Launcher finishes, these tell us why.
+**Updated recently? Check this first.** The Wine virtual desktop is now off by default, and re-running the updated installer imports `90-disable-virtual-desktop.reg`, which **removes a virtual desktop you previously had enabled**. That re-introduces the `BadWindow`/`X_CreateWindow` close-right-after-launch crash on XWayland compositors (Hyprland, some Mint setups). Before collecting any logs, try:
+
+```bash
+./install.sh --virtual-desktop
+```
+
+to restore it. If relaunching still closes after the Nexon Launcher, the logs below pinpoint the cause:
 
 1. **Proton log (most useful).** By default Proton writes nothing. Set a launch option — Steam → MapleStory → Properties → Launch Options:
 
@@ -298,7 +304,7 @@ If the game closes right after the Nexon Launcher finishes, these tell us why.
    PROTON_LOG=1 %command%
    ```
 
-   Reproduce the crash, then send `/tmp/proton_$USER.log`. It captures DLL load failures, unhandled exceptions, X errors, and anti-cheat (`BlackCipher`/`DwarfAxe`) failures — usually enough to pinpoint the cause in one file. (`./install.sh --install-proton-settings` also enables `PROTON_LOG`, but it affects every game sharing that Proton build and costs performance; the per-game launch option is preferred for diagnosis.)
+   Reproduce the crash, then send the Proton log. Modern Proton/GE-Proton writes it to **`~/steam-216150.log`** (`$HOME/steam-<appid>.log`, or `$PROTON_LOG_DIR/...` if that is set). If it's not there, find it with `find ~ /tmp -maxdepth 2 -name 'steam-216150.log'`. It captures DLL load failures, unhandled exceptions, X errors, and anti-cheat (`BlackCipher`/`DwarfAxe`) failures — usually enough to pinpoint the cause in one file. (`./install.sh --install-proton-settings` also enables `PROTON_LOG`, but it affects every game sharing that Proton build and costs performance; the per-game launch option is preferred for diagnosis.)
 
 2. **Console output (fastest signal).** Launch from a terminal or the Steam console. The `BadWindow`/`X_CreateWindow` error prints here immediately — see the bullet above for the fix (`--virtual-desktop`).
 
