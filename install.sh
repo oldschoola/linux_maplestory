@@ -115,6 +115,8 @@ if [ -z "$STEAM_ROOT" ]; then
     STEAM_ROOT="$HOME/.local/share/Steam"
   elif [ -d "$HOME/.steam/steam" ]; then
     STEAM_ROOT="$HOME/.steam/steam"
+  elif [ -d "$HOME/.steam/debian-installation" ]; then
+    STEAM_ROOT="$HOME/.steam/debian-installation"
   else
     die "could not auto-detect Steam root; pass --steam-root PATH"
   fi
