@@ -8,6 +8,7 @@ COMMON_DIR="${COMMON_DIR:-}"
 PROTON="${PROTON:-}"
 MAC_BOTTLE="${MAC_BOTTLE:-}"
 DESKTOP_SIZE="${VIRTUAL_DESKTOP_SIZE:-3840x2160}"
+USE_VIRTUAL_DESKTOP="${USE_VIRTUAL_DESKTOP:-0}"
 NEXON_LAUNCHER_SOURCE="${NEXON_LAUNCHER_SOURCE:-}"
 PAYLOAD_ZIP="${PAYLOAD_ZIP:-${PATCH_ZIP:-}}"
 PAYLOAD_DIR="${PAYLOAD_DIR:-${PATCH_FILES_DIR:-}}"
@@ -44,7 +45,9 @@ Options:
   --appid ID                     Steam app id (default: 216150)
   --prefix-dir PATH              compatdata app directory (default: $STEAM_ROOT/steamapps/compatdata/$APPID)
   --proton PATH                  Proton executable to use for regedit imports
-  --desktop-size WIDTHxHEIGHT    Wine virtual desktop size (default: 3840x2160)
+  --virtual-desktop              Enable the Wine virtual desktop (OFF by default). Needed only if you hit the
+                                 BadWindow/X_CreateWindow launch crash or lose input after alt-tab (common under XWayland: Hyprland/Mint).
+  --desktop-size WIDTHxHEIGHT    Set the Wine virtual desktop size AND enable it (default: 3840x2160)
   --resolution WIDTHxHEIGHT      Alias for --desktop-size
   --patch-zip PATH               Use a local patch zip instead of downloading one
   --patch-dir PATH               Use an already-extracted patch directory containing drive_c/ and vc_runtime/
@@ -85,7 +88,8 @@ while [ "$#" -gt 0 ]; do
     --appid) APPID="${2:?missing value for --appid}"; shift 2 ;;
     --prefix-dir) PREFIX_DIR="${2:?missing value for --prefix-dir}"; shift 2 ;;
     --proton) PROTON="${2:?missing value for --proton}"; shift 2 ;;
-    --desktop-size|--resolution) DESKTOP_SIZE="${2:?missing value for $1}"; shift 2 ;;
+    --virtual-desktop) USE_VIRTUAL_DESKTOP=1; shift ;;
+    --desktop-size|--resolution) DESKTOP_SIZE="${2:?missing value for $1}"; USE_VIRTUAL_DESKTOP=1; shift 2 ;;
     --patch-zip|--payload-zip) PAYLOAD_ZIP="${2:?missing value for $1}"; shift 2 ;;
     --patch-dir|--payload-dir) PAYLOAD_DIR="${2:?missing value for $1}"; shift 2 ;;
     --launcher-source) NEXON_LAUNCHER_SOURCE="${2:?missing value for --launcher-source}"; shift 2 ;;
@@ -337,6 +341,7 @@ ensure_payload() {
 
 preflight_bundle() {
   require_file "$PATCH_DIR/01-usetakefocus.reg"
+  require_file "$PATCH_DIR/90-disable-virtual-desktop.reg"
   require_file "$PATCH_DIR/10-nexon-launcher-protocol.reg"
   require_file "$PATCH_DIR/11-wine-direct3d-dll-overrides.reg"
   require_file "$PATCH_DIR/12-proton-user-settings.py"
@@ -449,20 +454,26 @@ apply_runtime_files() {
 
 apply_alt_tab_patches() {
   [ "$APPLY_ALT_TAB" -eq 1 ] || return 0
-  local desktop_patch="$PATCH_DIR/02-virtual-desktop-$DESKTOP_SIZE.reg"
-
-  log "Generating virtual desktop patch for $DESKTOP_SIZE"
-  if [ "$DRY_RUN" -eq 1 ]; then
-    printf '[dry-run] %q %q\n' "$PATCH_DIR/make-virtual-desktop-patch.sh" "$DESKTOP_SIZE"
-  else
-    "$PATCH_DIR/make-virtual-desktop-patch.sh" "$DESKTOP_SIZE" >/dev/null
-  fi
 
   reg_import "$PATCH_DIR/01-usetakefocus.reg" '"UseTakeFocus"'
-  if [ "$DRY_RUN" -eq 1 ] && [ ! -f "$desktop_patch" ]; then
-    printf '[dry-run] would import generated patch: %s\n' "$desktop_patch"
+
+  if [ "$USE_VIRTUAL_DESKTOP" -eq 1 ]; then
+    local desktop_patch="$PATCH_DIR/02-virtual-desktop-$DESKTOP_SIZE.reg"
+    log "Generating virtual desktop patch for $DESKTOP_SIZE"
+    if [ "$DRY_RUN" -eq 1 ]; then
+      printf '[dry-run] %q %q\n' "$PATCH_DIR/make-virtual-desktop-patch.sh" "$DESKTOP_SIZE"
+    else
+      "$PATCH_DIR/make-virtual-desktop-patch.sh" "$DESKTOP_SIZE" >/dev/null
+    fi
+    if [ "$DRY_RUN" -eq 1 ] && [ ! -f "$desktop_patch" ]; then
+      printf '[dry-run] would import generated patch: %s\n' "$desktop_patch"
+    else
+      reg_import "$desktop_patch" "\"Default\"=\"$DESKTOP_SIZE\""
+    fi
   else
-    reg_import "$desktop_patch" "\"Default\"=\"$DESKTOP_SIZE\""
+    log "Wine virtual desktop disabled (default); removing any prior virtual-desktop keys"
+    reg_import "$PATCH_DIR/90-disable-virtual-desktop.reg"
+    log "Pass --virtual-desktop (or --desktop-size WxH) to enable it; needed for the BadWindow/X_CreateWindow launch crash and alt-tab input loss under XWayland."
   fi
 }
 

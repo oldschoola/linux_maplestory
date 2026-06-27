@@ -81,24 +81,28 @@ Do not commit `files.zip` or extracted `files/` patch files. They are ignored by
 
 ## All-in-one installer
 
-From wherever you put this repo:
+From wherever you put this repo (no Wine virtual desktop by default — just the focus patch):
 
 ```bash
 cd /path/to/linux_maplestory
-./install.sh --desktop-size 3840x2160
+./install.sh
 ```
 
-For another monitor size:
+The Wine virtual desktop is **off by default**. Enable it only if you hit the
+`BadWindow`/`X_CreateWindow` launch crash or lose keyboard input after alt-tab
+(common under XWayland: Hyprland, some Mint setups):
 
 ```bash
-./install.sh --desktop-size 2560x1440
+cd /path/to/linux_maplestory
+./install.sh --virtual-desktop          # enable at the default size (3840x2160)
+./install.sh --desktop-size 2560x1440   # enable at a custom size
 ```
 
 Offline/manual patch options:
 
 ```bash
-./install.sh --patch-zip /path/to/files.zip --desktop-size 3840x2160
-./install.sh --patch-dir /path/to/files --desktop-size 3840x2160
+./install.sh --patch-zip /path/to/files.zip
+./install.sh --patch-dir /path/to/files
 ```
 
 Useful options:
@@ -110,6 +114,7 @@ Useful options:
 - `--persist-fkeys` also writes the reboot-persistent `hid_apple fnmode=2` config; use this only after the temporary F-key fix works for you.
 - `--skip-runtime` applies only the alt-tab/input registry patches and does not download patch files.
 - `--skip-alt-tab` applies only the launch/runtime patch set.
+- `--virtual-desktop` enables the Wine virtual desktop (off by default); `--desktop-size WxH` also enables it at a custom size. Only needed for the BadWindow/X_CreateWindow launch crash or alt-tab input loss under XWayland.
 - `--steam-root PATH`, `--prefix-dir PATH`, and `--proton PATH` override auto-detection.
 
 The installer does not copy another user's Steam config or whole `pfx`; it patches the local prefix created by Steam.
@@ -277,16 +282,39 @@ cd /path/to/linux_maplestory
 ## Troubleshooting
 
 - **`ProtonFixes [...] WARN: Skipping fix execution. We are probably running a unit test.`** — harmless. `proton run regedit` is not a game launch, so GE-Proton's protonfixes skips its game fixes, but regedit still runs normally. The installer verifies each import landed in the prefix registry and, if not, retries with the bundled Wine binary directly (the same path Protontricks uses) before reporting success.
-- **Crash right after "MapleStory is being launched" / `X Error of failed request: BadWindow ... X_CreateWindow`** — the Wine virtual-desktop patch is what fixes this: it makes Wine ignore window-manager reparenting churn under XWayland so window creation cannot fail. The installer applies it; if it did not land, re-run the installer (or import `patches/02-virtual-desktop-<size>.reg` via Protontricks).
+- **Crash right after "MapleStory is being launched" / `X Error of failed request: BadWindow ... X_CreateWindow`** — the Wine virtual-desktop patch fixes this: it makes Wine ignore window-manager reparenting churn under XWayland so window creation cannot fail. It is **off by default**; enable it with `./install.sh --virtual-desktop` (or `--desktop-size <W>x<H>`), or import `patches/02-virtual-desktop-<size>.reg` via Protontricks.
 - **A `.reg` still will not apply via the installer** — import it manually with Protontricks for Steam app `216150`: select the app, choose the default wineprefix, run regedit, then Registry → Import Registry File... and pick the `.reg`. Protontricks calls the Proton Wine binary directly and bypasses protonfixes.
 - **Nexon Launcher "not found" / `nexon_launcher.exe`** — Windows `.exe` files do **not** need the Linux executable (`+x`) bit; Wine runs them without it. If the installer reported the packaged copy missing after extraction, re-running it now works (detection accepts a non-executable file).
 - **Do not run `MapleStory.exe` directly.** Steam hands `nxsteam.exe` the Nexon launch ticket; launching the exe directly fails immediately.
 - **Hyprland / wlroots** — if window creation still misbehaves, add a Hyprland window rule (float/fullscreen) for the MapleStory window class, or run the game under `gamescope`.
 
+### Collecting logs
+
+If the game closes right after the Nexon Launcher finishes, these tell us why.
+
+1. **Proton log (most useful).** By default Proton writes nothing. Set a launch option — Steam → MapleStory → Properties → Launch Options:
+
+   ```
+   PROTON_LOG=1 %command%
+   ```
+
+   Reproduce the crash, then send `/tmp/proton_$USER.log`. It captures DLL load failures, unhandled exceptions, X errors, and anti-cheat (`BlackCipher`/`DwarfAxe`) failures — usually enough to pinpoint the cause in one file. (`./install.sh --install-proton-settings` also enables `PROTON_LOG`, but it affects every game sharing that Proton build and costs performance; the per-game launch option is preferred for diagnosis.)
+
+2. **Console output (fastest signal).** Launch from a terminal or the Steam console. The `BadWindow`/`X_CreateWindow` error prints here immediately — see the bullet above for the fix (`--virtual-desktop`).
+
+3. **Nexon Launcher logs**, in the prefix, show whether the handoff to `nxsteam` succeeded:
+
+   ```
+   ~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/
+   ~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c/users/steamuser/AppData/LocalLow/Nexon/
+   ```
+
+Also tell us your **compositor / desktop** (KDE, Hyprland, Gamescope, Mint-on-XWayland, …) — several crashes are compositor-specific. And if you ran an older version of this installer before it verified `.reg` imports, re-run the current `./install.sh` once; a silently-failed registry import is itself a crash cause.
+
 ## Notes
 
 - Gamescope was tried before and did not fix the alt-tab input problem on the reference setup.
-- The first focus patch alone (`UseTakeFocus=N`) was not enough for the reported failure. The virtual desktop patch is the important one for this MapleStory alt-tab case.
+- `UseTakeFocus=N` is applied by default and is sufficient for alt-tab input on the reference (KDE) setup. The Wine virtual desktop is **off by default**; it was added for a reported alt-tab / `BadWindow` case under other compositors — enable it with `--virtual-desktop` only if you need it.
 - If `regedit` does not exit, the prefix is probably still active. Fully close MapleStory/Steam launch helpers, then run the import again.
 - If bare `F1`-`F12` do not work on an Apple-compatible keyboard under KDE/Linux, check `/sys/module/hid_apple/parameters/fnmode`. `fnmode=2` means function keys first.
 
