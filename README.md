@@ -105,7 +105,7 @@ Useful options:
 
 - `--dry-run` prints what would happen without modifying files or registry.
 - `--kill` terminates running MapleStory/Nexon helper processes before patching.
-- `--install-proton-settings` adds the documented Proton env settings to that Proton tool's `user_settings.py`; this is off by default because it affects every game using that Proton build.
+- `--install-proton-settings` writes a marked env block to that Proton tool's `user_settings.py`; this is **off by default**: of the three values only `PROTON_LOG` is a real Proton option, and it just enables verbose logging (a diagnostic that costs performance and affects every game using that Proton build). Not required for the game to boot; see Troubleshooting.
 - `--fix-fkeys` sets `hid_apple fnmode=2` for this boot so Apple-compatible keyboards send real `F1`-`F12`; this requires sudo and is off by default because it is system-wide.
 - `--persist-fkeys` also writes the reboot-persistent `hid_apple fnmode=2` config; use this only after the temporary F-key fix works for you.
 - `--skip-runtime` applies only the alt-tab/input registry patches and does not download patch files.
@@ -208,6 +208,8 @@ SteamAppId="$APPID" SteamGameId="$APPID" \
 "$PROTON" run regedit /S patches/03-combined-alt-tab-fix-3840x2160.reg
 ```
 
+If that import prints `ProtonFixes [...] WARN: Skipping fix execution...` it is harmless (regedit still runs). The all-in-one installer verifies every import and falls back to the bundled Wine binary if needed; for manual imports that don't land, use Protontricks instead — see Troubleshooting.
+
 For a different monitor size:
 
 ```bash
@@ -253,6 +255,8 @@ SteamAppId="$APPID" SteamGameId="$APPID" \
 "$PROTON" run regedit /S patches/11-wine-direct3d-dll-overrides.reg
 ```
 
+Same note as above: the `ProtonFixes ... unit test` warning is harmless, and a manual import that does not apply can be done through Protontricks instead (see Troubleshooting).
+
 ## Test
 
 1. Get to a screen where MapleStory accepts keyboard input.
@@ -269,6 +273,15 @@ Close MapleStory first. Then import one or both rollback patches with the same P
 cd /path/to/linux_maplestory
 # import patches/90-disable-virtual-desktop.reg and/or patches/91-remove-usetakefocus.reg
 ```
+
+## Troubleshooting
+
+- **`ProtonFixes [...] WARN: Skipping fix execution. We are probably running a unit test.`** — harmless. `proton run regedit` is not a game launch, so GE-Proton's protonfixes skips its game fixes, but regedit still runs normally. The installer verifies each import landed in the prefix registry and, if not, retries with the bundled Wine binary directly (the same path Protontricks uses) before reporting success.
+- **Crash right after "MapleStory is being launched" / `X Error of failed request: BadWindow ... X_CreateWindow`** — the Wine virtual-desktop patch is what fixes this: it makes Wine ignore window-manager reparenting churn under XWayland so window creation cannot fail. The installer applies it; if it did not land, re-run the installer (or import `patches/02-virtual-desktop-<size>.reg` via Protontricks).
+- **A `.reg` still will not apply via the installer** — import it manually with Protontricks for Steam app `216150`: select the app, choose the default wineprefix, run regedit, then Registry → Import Registry File... and pick the `.reg`. Protontricks calls the Proton Wine binary directly and bypasses protonfixes.
+- **Nexon Launcher "not found" / `nexon_launcher.exe`** — Windows `.exe` files do **not** need the Linux executable (`+x`) bit; Wine runs them without it. If the installer reported the packaged copy missing after extraction, re-running it now works (detection accepts a non-executable file).
+- **Do not run `MapleStory.exe` directly.** Steam hands `nxsteam.exe` the Nexon launch ticket; launching the exe directly fails immediately.
+- **Hyprland / wlroots** — if window creation still misbehaves, add a Hyprland window rule (float/fullscreen) for the MapleStory window class, or run the game under `gamescope`.
 
 ## Notes
 

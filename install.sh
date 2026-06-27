@@ -153,19 +153,86 @@ resolve_proton() {
   die "could not find Proton executable. Pass --proton PATH or set compatibility in Steam and launch once."
 }
 
+resolve_wine() {
+  # Resolve the Wine binary shipped with the selected Proton tool. Used as a
+  # ProtonFixes-bypassing fallback for regedit (this is effectively what
+  # Protontricks does). GE-Proton ships a unified 'wine'; 'wine64' is a fallback.
+  local proton_dir c
+  proton_dir="$(dirname -- "$PROTON")"
+  for c in \
+    "$proton_dir/files/bin/wine" \
+    "$proton_dir/files/bin/wine64" \
+    "$proton_dir/dist/bin/wine" \
+    "$proton_dir/dist/bin/wine64"
+  do
+    [ -x "$c" ] && { printf '%s\n' "$c"; return 0; }
+  done
+  return 1
+}
+
+reg_value_present() {
+  # $1 = a distinctive literal the patch writes into user.reg or system.reg.
+  local marker="$1"
+  [ -n "$marker" ] || return 0
+  grep -F -q -- "$marker" "$PFX/user.reg" 2>/dev/null && return 0
+  grep -F -q -- "$marker" "$PFX/system.reg" 2>/dev/null && return 0
+  return 1
+}
+
 reg_import() {
   local patch="$1"
+  local marker="${2:-}"
   require_file "$patch"
   log "Importing registry patch: ${patch#$SCRIPT_DIR/}"
   if [ "$DRY_RUN" -eq 1 ]; then
     printf '[dry-run] STEAM_COMPAT_DATA_PATH=%q STEAM_COMPAT_CLIENT_INSTALL_PATH=%q SteamAppId=%q SteamGameId=%q %q run regedit /S %q\n' \
       "$PREFIX_DIR" "$STEAM_ROOT" "$APPID" "$APPID" "$PROTON" "$patch"
-  else
-    STEAM_COMPAT_DATA_PATH="$PREFIX_DIR" \
-    STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_ROOT" \
-    SteamAppId="$APPID" SteamGameId="$APPID" \
-    "$PROTON" run regedit /S "$patch"
+    return
   fi
+
+  local err_tmp rc
+  rc=0
+  err_tmp="$(mktemp)"
+  # `proton run regedit` is not a game launch, so GE-Proton's protonfixes logs
+  # "Skipping fix execution. We are probably running a unit test." That line is
+  # harmless (regedit still runs), but it reads like a failure. Capture stderr,
+  # drop only that one line, and pass everything else through.
+  STEAM_COMPAT_DATA_PATH="$PREFIX_DIR" \
+  STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_ROOT" \
+  SteamAppId="$APPID" SteamGameId="$APPID" \
+  "$PROTON" run regedit /S "$patch" 2>"$err_tmp" || rc=$?
+  grep -F -v 'Skipping fix execution. We are probably running a unit test.' "$err_tmp" >&2 || true
+  rm -f "$err_tmp"
+  # `proton run` returns as soon as the regedit process exits, but the prefix's
+  # wineserver may not have flushed the registry to user.reg/system.reg yet.
+  # Wait for it to go idle so the verify step below actually sees the keys.
+  local _pdir _ws
+  _pdir="$(dirname -- "$PROTON")"
+  for _ws in "$_pdir/files/bin/wineserver" "$_pdir/dist/bin/wineserver"; do
+    [ -x "$_ws" ] && { WINEPREFIX="$PFX" "$_ws" -w 2>/dev/null || true; break; }
+  done
+
+  # When a verify marker is provided, success is defined by the key actually
+  # landing in the prefix registry -- not regedit's exit status alone. If
+  # `proton run` did not write it, retry with the bundled Wine binary directly
+  # (the ProtonFixes-free path Protontricks uses) and fail loudly if the key is
+  # still missing, instead of printing a false "Install complete".
+  if [ -n "$marker" ]; then
+    if ! reg_value_present "$marker"; then
+      local wine_bin
+      if wine_bin="$(resolve_wine 2>/dev/null)"; then
+        log "Key not found after 'proton run'; retrying with bundled Wine binary: $wine_bin"
+        WINEPREFIX="$PFX" "$wine_bin" regedit /S "$patch" 2>/dev/null || rc=$?
+      else
+        rc=1
+      fi
+    fi
+    reg_value_present "$marker" \
+      || die "registry patch did not apply: ${patch#$SCRIPT_DIR/} (expected '$marker' in $PFX/user.reg or $PFX/system.reg). If this keeps failing, import the .reg via Protontricks for Steam app $APPID."
+    return 0
+  fi
+
+  return "$rc"
 }
 
 backup_path() {
@@ -286,7 +353,7 @@ preflight_bundle() {
 check_processes() {
   command -v pgrep >/dev/null 2>&1 || return 0
   local matches
-  matches="$(pgrep -af -i "SteamLaunch AppId=$APPID|MapleStory.exe|nxsteam|BlackCipher|DwarfAxe" || true)"
+  matches="$(pgrep -af -i "SteamLaunch AppId=$APPID|MapleStory.exe|nxsteam|BlackCipher|DwarfAxe" | grep -vE "^($$|$PPID) " || true)"
   [ -n "$matches" ] || return 0
 
   if [ "$KILL_RUNNING" -eq 1 ]; then
@@ -300,23 +367,40 @@ check_processes() {
     fi
   else
     printf '%s\n' "$matches" >&2
-    die "MapleStory appears to be running. Close it first or rerun with --kill."
+    die "MapleStory or its helpers (BlackCipher/DwarfAxe) appear to be running -- these often linger after a crash. Fully close the game, or rerun with --kill to terminate them before patching."
+  fi
+}
+
+check_dependencies() {
+  # python3 is needed to download or extract the payload zip. It is NOT needed
+  # when the payload is already laid out (files/ present) and no zip is given.
+  local need_python=0
+  if [ "$APPLY_RUNTIME" -eq 1 ]; then
+    [ -n "$PAYLOAD_ZIP" ] && need_python=1
+    payload_ready || need_python=1
+  fi
+  if [ "$need_python" -eq 1 ]; then
+    command -v python3 >/dev/null 2>&1 \
+      || die "python3 is required to obtain the patch payload. Install it and retry:
+  Debian/Ubuntu/Mint:  sudo apt install python3
+  Fedora:             sudo dnf install python3
+  Arch/CachyOS:       sudo pacman -S python"
   fi
 }
 
 preflight_runtime_sources() {
   [ "$APPLY_RUNTIME" -eq 1 ] || return 0
 
-  if [ -x "$PFX/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
+  if [ -f "$PFX/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
     return 0
   fi
-  if [ -n "$NEXON_LAUNCHER_SOURCE" ] && [ -x "$NEXON_LAUNCHER_SOURCE/nexon_launcher.exe" ]; then
+  if [ -n "$NEXON_LAUNCHER_SOURCE" ] && [ -f "$NEXON_LAUNCHER_SOURCE/nexon_launcher.exe" ]; then
     return 0
   fi
-  if [ -x "$FILES_DIR/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
+  if [ -f "$FILES_DIR/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
     return 0
   fi
-  if [ -x "$MAC_BOTTLE/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
+  if [ -f "$MAC_BOTTLE/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
     return 0
   fi
 
@@ -374,18 +458,18 @@ apply_alt_tab_patches() {
     "$PATCH_DIR/make-virtual-desktop-patch.sh" "$DESKTOP_SIZE" >/dev/null
   fi
 
-  reg_import "$PATCH_DIR/01-usetakefocus.reg"
+  reg_import "$PATCH_DIR/01-usetakefocus.reg" '"UseTakeFocus"'
   if [ "$DRY_RUN" -eq 1 ] && [ ! -f "$desktop_patch" ]; then
     printf '[dry-run] would import generated patch: %s\n' "$desktop_patch"
   else
-    reg_import "$desktop_patch"
+    reg_import "$desktop_patch" "\"Default\"=\"$DESKTOP_SIZE\""
   fi
 }
 
 apply_runtime_registry() {
   [ "$APPLY_RUNTIME" -eq 1 ] || return 0
-  reg_import "$PATCH_DIR/10-nexon-launcher-protocol.reg"
-  reg_import "$PATCH_DIR/11-wine-direct3d-dll-overrides.reg"
+  reg_import "$PATCH_DIR/10-nexon-launcher-protocol.reg" 'URL:nxl protocol'
+  reg_import "$PATCH_DIR/11-wine-direct3d-dll-overrides.reg" 'cb_access_map_w'
 }
 
 install_proton_settings() {
@@ -495,6 +579,7 @@ if [ "$APPLY_FKEYS" -eq 1 ] && [ "$APPLY_RUNTIME" -eq 0 ] && [ "$APPLY_ALT_TAB" 
   exit 0
 fi
 
+check_dependencies
 ensure_payload
 preflight_bundle
 require_dir "$STEAM_ROOT"
@@ -516,5 +601,5 @@ log "Install complete"
 log "Backups: $BACKUP_DIR"
 log "Relaunch MapleStory through Steam and test input + alt-tab."
 if [ "$INSTALL_PROTON_SETTINGS" -eq 0 ]; then
-  log "Proton user_settings.py was not changed. Use --install-proton-settings only if you need those env vars."
+  log "Proton user_settings.py was not changed. --install-proton-settings is optional: of its values only PROTON_LOG (verbose logging) is a real Proton option, and it is a diagnostic, not a boot fix."
 fi

@@ -32,17 +32,17 @@ echo "Applying patch NexonLauncher apps-settings.db"
 copy_file "$PAYLOAD_DIR/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db" \
   "$PFX/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db"
 
-if [ -x "$PFX/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
+if [ -f "$PFX/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
   echo "Nexon Launcher already exists in prefix; leaving it in place"
-elif [ -x "$PACKAGED_NEXON_LAUNCHER/nexon_launcher.exe" ]; then
+elif [ -f "$PACKAGED_NEXON_LAUNCHER/nexon_launcher.exe" ]; then
   echo "Copying patch Nexon Launcher"
   mkdir -p -- "$PFX/drive_c/Nexon"
   cp -a -- "$PACKAGED_NEXON_LAUNCHER" "$PFX/drive_c/Nexon/Launcher"
-elif [ -n "$NEXON_LAUNCHER_SOURCE" ] && [ -x "$NEXON_LAUNCHER_SOURCE/nexon_launcher.exe" ]; then
+elif [ -n "$NEXON_LAUNCHER_SOURCE" ] && [ -f "$NEXON_LAUNCHER_SOURCE/nexon_launcher.exe" ]; then
   echo "Copying Nexon Launcher from NEXON_LAUNCHER_SOURCE"
   mkdir -p -- "$PFX/drive_c/Nexon"
   cp -a -- "$NEXON_LAUNCHER_SOURCE" "$PFX/drive_c/Nexon/Launcher"
-elif [ -x "$MAC_BOTTLE/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
+elif [ -f "$MAC_BOTTLE/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
   echo "Copying Nexon Launcher from Mac bottle"
   mkdir -p -- "$PFX/drive_c/Nexon"
   cp -a -- "$MAC_BOTTLE/drive_c/Nexon/Launcher" "$PFX/drive_c/Nexon/Launcher"
