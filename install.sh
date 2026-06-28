@@ -12,8 +12,8 @@ PAYLOAD_ZIP="${PAYLOAD_ZIP:-${PATCH_ZIP:-}}"
 PAYLOAD_DIR="${PAYLOAD_DIR:-${PATCH_FILES_DIR:-}}"
 APPLY_RUNTIME=1
 APPLY_ALT_TAB=1
-APPLY_FKEYS=0
-PERSIST_FKEYS=0
+APPLY_FKEYS=1
+PERSIST_FKEYS=1
 KILL_RUNNING=0
 DRY_RUN=0
 
@@ -523,6 +523,31 @@ warn_hid_apple_fnmode() {
   log "For reboot persistence after testing, run: ./install.sh --skip-runtime --skip-alt-tab --persist-fkeys"
 }
 
+ensure_sudo() {
+  sudo -n true 2>/dev/null && return 0
+  log "Some steps need sudo (input group, hid_apple F-key mode). Enter your password when prompted."
+  sudo -v || die "sudo authentication is required but failed."
+}
+
+ensure_input_group() {
+  # Wine DirectInput (UseLinuxInputEvents) must read /dev/input/event* to deliver
+  # raw scancodes for in-game skill keys (Q/W/E/R, 1-0, Enter). That needs
+  # membership in the 'input' group; without it those keys silently don't register.
+  id -nG 2>/dev/null | grep -qw input && return 0
+  if getent group input 2>/dev/null | grep -qw "$USER"; then
+    log "Note: you are in the 'input' group but must log out and back in for it to take effect (needed for in-game skill keys)."
+    return 0
+  fi
+  [ "$DRY_RUN" -eq 1 ] && { log "[dry-run] would: sudo usermod -aG input $USER"; return 0; }
+  ensure_sudo
+  log "Adding $USER to the 'input' group (needed for in-game skill keys)."
+  if sudo usermod -aG input "$USER"; then
+    log "Added to 'input'. IMPORTANT: log out and back in (or reboot) for in-game skill keys to work."
+  else
+    log "WARNING: could not add to 'input' group. Run 'sudo usermod -aG input $USER', then re-login."
+  fi
+}
+
 verify_install() {
   [ "$DRY_RUN" -eq 0 ] || return 0
   log "Verifying installed files"
@@ -536,6 +561,7 @@ verify_install() {
 
 if [ "$APPLY_FKEYS" -eq 1 ] && [ "$APPLY_RUNTIME" -eq 0 ] && [ "$APPLY_ALT_TAB" -eq 0 ]; then
   require_file "$PATCH_DIR/20-hid-apple-fkeysfirst.sh"
+  ensure_input_group
   apply_fkey_patch
   log "F1-F12 hardware-mode patch complete"
   exit 0
@@ -555,6 +581,7 @@ apply_alt_tab_patches
 apply_runtime_registry
 apply_wine_patches
 verify_install
+ensure_input_group
 apply_fkey_patch
 warn_hid_apple_fnmode
 

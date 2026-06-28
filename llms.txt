@@ -86,7 +86,7 @@ Read the crash signature (terminal output / `~/steam-216150.log` / connector log
 | Permission denied / AVC `denied { execmem }` | SELinux (Fedora) | `sudo setenforce 0` to test; permanent via `audit2allow` |
 | `Failed to create Vulkan instance` / black screen | missing 32-bit Vulkan / driver | Debian/Ubuntu: `sudo dpkg --add-architecture i386 && sudo apt install libvulkan1:i386` + matching `:i386` driver; enable `non-free-firmware` |
 | `ntsync` only as a missing-module log line | old kernel (<6.14) | benign fallback; try a backports/newer kernel if other fixes fail |
-| In-game skill keys (`Q`/`W`/`E`/`R`, `Alt+1`–`Alt+5`) don't register | DirectInput not configured | `04-input-fixes.reg` + `05-appdefaults-winver.reg` apply by default; re-run `./install.sh` and confirm the imports landed |
+| In-game skill keys (`Q`/`W`/`E`/`R`, `1`–`0`, `Enter`) don't register / keys won't repeat while held | user not in system `input` group → Wine DirectInput (`UseLinuxInputEvents`) can't read `/dev/input/event*` | `sudo usermod -aG input $USER`, then **log out and back in** (the installer does this + prompts to re-login). Confirm `04-input-fixes.reg` imported |
 
 Order of operations when unsure: **clean launch → `--virtual-desktop` → different
 Proton → distro prerequisite → Protontricks**. Apply one change per iteration so you
