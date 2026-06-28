@@ -2,9 +2,35 @@
 
 <img src="maplestorylinux.png" alt="MapleStory Linux icon" width="200">
 
-This repo documents and automates the Linux/Proton setup used to run the Steam Windows build of MapleStory.
+This repo documents and automates the Linux/Proton setup used to run the Steam Windows build of MapleStory. The launch fixes have been upstreamed (see above); this installer is the stopgap until they land in a GE-Proton release.
 
 ![Screenshot](screen.png)
+
+## Upstream fixes (in progress - the path to "just works")
+
+All three MapleStory launch blockers have been fixed upstream. Once the
+patches below land in a GE-Proton release, MapleStory should work out of
+the box - select GE-Proton and launch, no installer needed. Until then,
+this repo's installer applies the same fixes locally.
+
+| Fix | Wine upstream (Bugzilla) | proton-ge-custom (source patch) | umu-protonfixes (registry) |
+|---|---|---|---|
+| **kernelbase CharPrevExA NULL-deref** (`0xc0000005` launch crash) | [bug 59926](https://bugs.winehq.org/show_bug.cgi?id=59926) + patch | [PR #603](https://github.com/GloriousEggroll/proton-ge-custom/pull/603) | n/a |
+| **win32u SPI_SETSTICKYKEYS/SETFILTERKEYS** (accessibility SET returns failure) | [bug 59927](https://bugs.winehq.org/show_bug.cgi?id=59927) + patch | [PR #601](https://github.com/GloriousEggroll/proton-ge-custom/pull/601) | n/a |
+| **winver + input + protocol registry** (AppDefaults, DirectInput, nxl: handler) | n/a | n/a | [PR #597](https://github.com/Open-Wine-Components/umu-protonfixes/pull/597) |
+
+**What this means:**
+- The **source patches** (CharPrevExA + SPI) are carried by proton-ge-custom
+  as game-patches until Wine merges them upstream. Once a GE-Proton build
+  includes PRs #601 + #603, the `0xc0000005` launch crash and the SPI
+  failure are fixed at the Wine source level - no binary patching needed.
+- The **registry gamefix** (umu-protonfixes PR #597) applies the winver,
+  DirectInput, X11 focus, and Nexon `nxl:` protocol settings automatically
+  at launch time for appid `216150`. Once merged, it replaces this repo's
+  manual `.reg` imports.
+- The local installer (`./install.sh`) remains the **stopgap** until both
+  land in a GE-Proton release. It applies the same fixes via byte-patching
+  + `.reg` import into your prefix.
 
 
 ## Current reference setup
