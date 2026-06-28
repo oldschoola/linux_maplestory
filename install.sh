@@ -8,8 +8,6 @@ COMMON_DIR="${COMMON_DIR:-}"
 PROTON="${PROTON:-}"
 DESKTOP_SIZE="${VIRTUAL_DESKTOP_SIZE:-1920x1080}"
 USE_VIRTUAL_DESKTOP="${USE_VIRTUAL_DESKTOP:-0}"
-PAYLOAD_ZIP="${PAYLOAD_ZIP:-${PATCH_ZIP:-}}"
-PAYLOAD_DIR="${PAYLOAD_DIR:-${PATCH_FILES_DIR:-}}"
 APPLY_RUNTIME=1
 APPLY_ALT_TAB=1
 APPLY_FKEYS=1
@@ -19,16 +17,7 @@ DRY_RUN=0
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 PATCH_DIR="$SCRIPT_DIR/patches"
-PAYLOAD_DIR="${PAYLOAD_DIR:-$SCRIPT_DIR/files}"
-FILES_DIR="$PAYLOAD_DIR"
-PAYLOAD_CACHE_DIR="$SCRIPT_DIR/.payload"
-PAYLOAD_URLS=(
-  "https://files.catbox.moe/qaxsw6.zip"
-  "https://x0.at/96Ia.zip"
-  "https://l.station307.com/23wXxZg1fohbhAkbHN8wMj/files.zip"
-  "https://limewire.com/d/lzRB1#nDRoOiUHPA"
-  "https://drive.google.com/file/d/1ybJcwEGPQF3heLJnafpPX7H7kezwcvqF/view?usp=sharing"
-)
+FILES_DIR="$SCRIPT_DIR/files"
 
 usage() {
   cat <<'EOF'
@@ -47,8 +36,6 @@ Options:
   --desktop-size WIDTHxHEIGHT    Set the virtual desktop size for --virtual-desktop (default: 1920x1080);
                                  does NOT enable the virtual desktop on its own.
   --resolution WIDTHxHEIGHT      Alias for --desktop-size
-  --patch-zip PATH               Use a local patch zip instead of downloading one
-  --patch-dir PATH               Use an already-extracted patch directory containing drive_c/ and vc_runtime/
   --fix-fkeys                   Set hid_apple fnmode=2 for this boot so Apple-compatible keyboards send F1-F12
   --persist-fkeys               Also persist hid_apple fnmode=2 across reboots; implies --fix-fkeys
   --skip-runtime                 Skip runtime/DLL file patches and runtime registry imports
@@ -56,11 +43,8 @@ Options:
   --kill                         Terminate running MapleStory/Nexon helper processes before patching
   --dry-run                      Print actions without modifying files or registry
   -h, --help                     Show this help
-  --payload-zip PATH             Backward-compatible alias for --patch-zip
-  --payload-dir PATH             Backward-compatible alias for --patch-dir
 
-Environment overrides: APPID, STEAM_ROOT, PREFIX_DIR, PROTON,
-VIRTUAL_DESKTOP_SIZE, PATCH_ZIP, PATCH_FILES_DIR.
+Environment overrides: APPID, STEAM_ROOT, PREFIX_DIR, PROTON, VIRTUAL_DESKTOP_SIZE.
 EOF
 }
 
@@ -85,8 +69,6 @@ while [ "$#" -gt 0 ]; do
     --proton) PROTON="${2:?missing value for --proton}"; shift 2 ;;
     --virtual-desktop) USE_VIRTUAL_DESKTOP=1; shift ;;
     --desktop-size|--resolution) DESKTOP_SIZE="${2:?missing value for $1}"; shift 2 ;;
-    --patch-zip|--payload-zip) PAYLOAD_ZIP="${2:?missing value for $1}"; shift 2 ;;
-    --patch-dir|--payload-dir) PAYLOAD_DIR="${2:?missing value for $1}"; shift 2 ;;
     --fix-fkeys) APPLY_FKEYS=1; shift ;;
     --persist-fkeys) APPLY_FKEYS=1; PERSIST_FKEYS=1; shift ;;
     --skip-runtime) APPLY_RUNTIME=0; shift ;;
@@ -245,90 +227,16 @@ payload_ready() {
   return 0
 }
 
-extract_payload_zip_file() {
-  local zip_path="$1"
-  log "Extracting payload zip: $zip_path"
-  if [ "$DRY_RUN" -eq 1 ]; then
-    printf '[dry-run] extract %q into %q\n' "$zip_path" "$SCRIPT_DIR"
-    return 0
-  fi
-  require_file "$zip_path"
-  python3 - "$zip_path" "$SCRIPT_DIR" <<'PY'
-import pathlib, shutil, sys, tempfile, zipfile
-zip_path = pathlib.Path(sys.argv[1])
-bundle = pathlib.Path(sys.argv[2])
-tmp = pathlib.Path(tempfile.mkdtemp(prefix="linux-maplestory-payload-"))
-try:
-    with zipfile.ZipFile(zip_path) as z:
-        z.extractall(tmp)
-    src = tmp / "files"
-    if not src.exists():
-        src = tmp
-    dest = bundle / "files"
-    if dest.exists():
-        shutil.rmtree(dest)
-    shutil.copytree(src, dest)
-finally:
-    shutil.rmtree(tmp, ignore_errors=True)
-PY
-}
-
-download_payload_zip() {
-  local dest="$PAYLOAD_CACHE_DIR/files.zip"
-  PAYLOAD_ZIP="$dest"
-  log "Downloading payload archive"
-  if [ "$DRY_RUN" -eq 1 ]; then
-    printf '[dry-run] download payload from mirrors into %q\n' "$dest"
-    return 0
-  fi
-  mkdir -p -- "$PAYLOAD_CACHE_DIR"
-  python3 - "$dest" "${PAYLOAD_URLS[@]}" <<'PY'
-import sys, urllib.request
-from pathlib import Path
-out = Path(sys.argv[1])
-urls = sys.argv[2:]
-errors = []
-for url in urls:
-    try:
-        print(f"trying {url}")
-        req = urllib.request.Request(url, headers={"User-Agent": "linux-maplestory-installer"})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            data = r.read()
-        if len(data) < 1024:
-            raise RuntimeError(f"download too small: {len(data)} bytes")
-        out.write_bytes(data)
-        print(f"downloaded {out} ({len(data)} bytes)")
-        raise SystemExit(0)
-    except SystemExit:
-        raise
-    except Exception as exc:
-        errors.append(f"{url}: {exc}")
-print("failed to download payload from all mirrors", file=sys.stderr)
-for err in errors:
-    print(err, file=sys.stderr)
-raise SystemExit(1)
-PY
-  PAYLOAD_ZIP="$dest"
-}
-
-ensure_payload() {
-  [ "$APPLY_RUNTIME" -eq 1 ] || return 0
-  if payload_ready; then
-    return 0
-  fi
-  if [ -n "$PAYLOAD_ZIP" ]; then
-    extract_payload_zip_file "$PAYLOAD_ZIP"
-  else
-    download_payload_zip
-    extract_payload_zip_file "$PAYLOAD_ZIP"
-  fi
-  if [ "$DRY_RUN" -eq 1 ]; then
-    return 0
-  fi
-  payload_ready || die "payload files are still missing after extraction"
-}
 
 preflight_bundle() {
+  if [ ! -d "$PATCH_DIR" ] || [ ! -d "$SCRIPT_DIR/files" ]; then
+    die "this installer must be run from a full checkout of the linux_maplestory repo
+(needs ./patches/ and ./files/ alongside install.sh). You appear to be running a
+copied install.sh from: $SCRIPT_DIR
+Clone the repo and run from its root:
+  git clone https://github.com/oldschoola/linux_maplestory.git
+  cd linux_maplestory && ./install.sh"
+  fi
   require_file "$PATCH_DIR/01-usetakefocus.reg"
   require_file "$PATCH_DIR/90-disable-virtual-desktop.reg"
   require_file "$PATCH_DIR/10-nexon-launcher-protocol.reg"
@@ -342,7 +250,10 @@ preflight_bundle() {
   fi
   if [ "$APPLY_RUNTIME" -eq 1 ] && [ "$DRY_RUN" -eq 0 ]; then
     require_file "$PATCH_DIR/patch-wine-binaries.sh"
-    payload_ready || die "payload files are missing; rerun with network access or --payload-zip /path/to/files.zip"
+    payload_ready || die "runtime payload files are missing under $SCRIPT_DIR/files/.
+The VC++ runtime DLLs ship in-repo under files/; run from a full git checkout:
+  git clone https://github.com/oldschoola/linux_maplestory.git
+  cd linux_maplestory && ./install.sh"
   fi
 }
 
@@ -367,22 +278,6 @@ check_processes() {
   fi
 }
 
-check_dependencies() {
-  # python3 is needed to download or extract the payload zip. It is NOT needed
-  # when the payload is already laid out (files/ present) and no zip is given.
-  local need_python=0
-  if [ "$APPLY_RUNTIME" -eq 1 ]; then
-    [ -n "$PAYLOAD_ZIP" ] && need_python=1
-    payload_ready || need_python=1
-  fi
-  if [ "$need_python" -eq 1 ]; then
-    command -v python3 >/dev/null 2>&1 \
-      || die "python3 is required to obtain the patch payload. Install it and retry:
-  Debian/Ubuntu/Mint:  sudo apt install python3
-  Fedora:             sudo dnf install python3
-  Arch/CachyOS:       sudo pacman -S python"
-  fi
-}
 
 backup_targets() {
   log "Backing up touched prefix files to $BACKUP_DIR"
@@ -466,15 +361,28 @@ apply_wine_patches() {
     *GE-Proton11-1*) ;;
     *) log "Skipping Wine binary patches: Proton tool ($ver) is not GE-Proton11-1; these patches are build-specific."; return 0 ;;
   esac
-  log "Applying Wine binary patches to $proton_dir (offset-based; targets backed up to $BACKUP_DIR)"
-  [ "$DRY_RUN" -eq 0 ] && backup_path "$proton_dir/files/lib/wine/x86_64-windows/kernelbase.dll"
-  [ "$DRY_RUN" -eq 0 ] && backup_path "$proton_dir/files/lib/wine/x86_64-unix/win32u.so"
   if [ "$DRY_RUN" -eq 1 ]; then
     printf '[dry-run] %q %q\n' "$PATCH_DIR/patch-wine-binaries.sh" "$proton_dir"
-  else
-    "$PATCH_DIR/patch-wine-binaries.sh" "$proton_dir" \
-      || log "WARNING: a Wine binary patch did not apply (see lines above); if the kernelbase CharPrevExA patch failed, the 0xc0000005 launch crash may recur."
+    return 0
   fi
+  # The byte-patches use python3 to read/write the Wine binaries at fixed
+  # offsets. This is the ONLY place python3 is needed now that the runtime
+  # DLLs ship in-repo (the DLL copy is pure bash/cp). Keep this nonfatal to
+  # match the existing patch-failure contract: skip + warn, do not die after
+  # the prefix has already been modified.
+  if ! command -v python3 >/dev/null 2>&1; then
+    log "Skipping Wine binary patches: python3 is required for the byte-patches but was not found.
+Install python3 and rerun to apply them (the 0xc0000005 launch crash may recur without them):
+  Debian/Ubuntu/Mint:  sudo apt install python3
+  Fedora:              sudo dnf install python3
+  Arch/CachyOS:        sudo pacman -S python"
+    return 0
+  fi
+  log "Applying Wine binary patches to $proton_dir (offset-based; targets backed up to $BACKUP_DIR)"
+  backup_path "$proton_dir/files/lib/wine/x86_64-windows/kernelbase.dll"
+  backup_path "$proton_dir/files/lib/wine/x86_64-unix/win32u.so"
+  "$PATCH_DIR/patch-wine-binaries.sh" "$proton_dir" \
+    || log "WARNING: a Wine binary patch did not apply (see lines above); if the kernelbase CharPrevExA patch failed, the 0xc0000005 launch crash may recur."
 }
 
 
@@ -601,8 +509,6 @@ if [ "$APPLY_FKEYS" -eq 1 ] && [ "$APPLY_RUNTIME" -eq 0 ] && [ "$APPLY_ALT_TAB" 
   exit 0
 fi
 
-check_dependencies
-ensure_payload
 preflight_bundle
 require_dir "$STEAM_ROOT"
 require_dir "$COMMON_DIR"

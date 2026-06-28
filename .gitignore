@@ -8,7 +8,6 @@ __pycache__/
 linux_maplestory-backups/
 backups/
 *.log
-.payload/
 
 
 # Generated virtual desktop patches, except bundled default

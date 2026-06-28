@@ -38,8 +38,8 @@ the decision tree, report exactly which signatures you saw and what you tried.
 - **GE-Proton11-1** must be selected as the app's compatibility tool (Steam → MapleStory → Properties → Compatibility → GE-Proton11-1). This is required, not optional: the bundle's Wine binary patches target this exact build.
 - A working Vulkan/graphics stack (see *Distro prerequisites* — a fresh Fedora/Debian
   box may be missing SELinux exceptions / 32-bit Vulkan / non-free firmware).
-- `python3` is only needed if downloading/extracting the payload zip (not if `files/`
-  is already present in the repo).
+- `python3` is only needed for the Wine binary byte-patches (the runtime DLL copy is pure `bash`/`cp`). The installer skips those patches with a warning if `python3` is absent; install it only if the `0xc0000005` launch crash recurs.
+- The runtime DLLs ship in-repo under `files/vc_runtime/` — there is no separate download. Run `install.sh` from a full git checkout (needs `./patches/` and `./files/` alongside it).
 
 ## Setup procedure
 

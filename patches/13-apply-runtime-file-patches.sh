@@ -6,7 +6,7 @@ STEAM_ROOT="${STEAM_ROOT:-$HOME/.local/share/Steam}"
 COMMON_DIR="${COMMON_DIR:-$STEAM_ROOT/steamapps/common}"
 PFX="${PFX:-$STEAM_ROOT/steamapps/compatdata/$APPID/pfx}"
 BUNDLE_ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-PAYLOAD_DIR="${PAYLOAD_DIR:-${PATCH_FILES_DIR:-$BUNDLE_ROOT/files}}"
+PAYLOAD_DIR="${PAYLOAD_DIR:-$BUNDLE_ROOT/files}"
 
 copy_file() {
   local src="$1"

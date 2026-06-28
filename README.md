@@ -83,7 +83,7 @@ Useful options:
 - `--dry-run` prints what would happen without modifying files or registry.
 - `--kill` terminates running MapleStory/Nexon helper processes before patching.
 - `--fix-fkeys` / `--persist-fkeys` control the hid_apple F-key mode (`fnmode=2`, so Apple-compatible keyboards send real `F1`–`F12`). **On by default** — the installer applies `--persist-fkeys` (also written to `/etc/modprobe.d` for reboot persistence); requires sudo. Use `--skip-runtime --skip-alt-tab` to run only this step.
-- `--skip-runtime` applies only the alt-tab/input registry patches and does not download patch files.
+- `--skip-runtime` applies only the alt-tab/input registry patches, skipping the VC++ runtime DLL copy, runtime registry imports, and Wine binary patches.
 - `--skip-alt-tab` applies only the launch/runtime patch set.
 - The Wine virtual desktop is **off by default**. An interactive `./install.sh` asks whether to enable it and at what size (1920×1080 / 2560×1440 / 3840×2160 / custom); `--virtual-desktop` enables it non-interactively at the default size, and `--desktop-size WxH` only sets the size (it does not enable the virtual desktop on its own). Only needed for the `BadWindow`/`X_CreateWindow` launch crash or alt-tab input loss under XWayland.
 - `--steam-root PATH`, `--prefix-dir PATH`, and `--proton PATH` override auto-detection.
@@ -198,12 +198,14 @@ patches/make-virtual-desktop-patch.sh 2560x1440
 
 Use this only if you do not want the all-in-one installer.
 
-The VC++ runtime DLLs are required (the `.mappings.ini` app-name mapping and NexonLauncher `apps-settings.db` locale setting are generated automatically). Download/extract the patch files first, then pass `PATCH_FILES_DIR`:
+The VC++ runtime DLLs ship in-repo under `files/vc_runtime/` (the `.mappings.ini` app-name mapping and NexonLauncher `apps-settings.db` locale setting are generated automatically by the script). Run from a full checkout of the repo (needs `patches/` and `files/` alongside `install.sh`):
 
 ```bash
 cd /path/to/linux_maplestory
-PATCH_FILES_DIR=/path/to/extracted/files patches/13-apply-runtime-file-patches.sh
+patches/13-apply-runtime-file-patches.sh
 ```
+
+The script reads `STEAM_ROOT`, `PFX`, and `APPID` from the environment (with the same defaults as `install.sh`); override them if your prefix is elsewhere.
 
 Then import the launcher/runtime registry patches:
 

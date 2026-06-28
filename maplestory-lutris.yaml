@@ -3,7 +3,7 @@ slug: maplestory-linux-proton-patch
 version: Steam Proton patch bundle
 runner: steam
 game_slug: maplestory
-require-binaries: bash, git, python3, steam
+require-binaries: bash, git, steam
 
 script:
   game:
