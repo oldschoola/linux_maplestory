@@ -1,0 +1,123 @@
+# linux_maplestory
+
+> Gets MapleStory (Steam app `216150`) running on Linux under Proton by porting the
+> known-working macOS Nexon Launcher + VC++ runtime into the Steam Proton prefix.
+> This file is an actionable runbook for an LLM/agent to install, launch, and
+> **keep retrying through crashes until the game client window actually opens.**
+
+## Your objective
+
+Apply the patch bundle, then launch MapleStory and confirm the game client window
+opens. If it crashes, read the crash signature, apply the matching fix from the
+decision tree below, and launch again. **Do not stop at "install completed" — the
+task is done only when the MapleStory client window is open and alive.** Keep
+retrying, applying a different fix each iteration, until it opens. If you exhaust
+the decision tree, report exactly which signatures you saw and what you tried.
+
+## Hard rules (do not violate)
+
+- **Never run `MapleStory.exe` directly.** Steam must hand `nxsteam.exe` the Nexon
+  launch ticket. Direct launch fails immediately. Always launch through Steam.
+- **Never enable `PROTON_LOG` globally** (e.g. by writing `user_settings.py` in the
+  Proton tool). Global logging applies to every game and trips Nexon Game Security.
+  Use the **per-game** launch option `PROTON_LOG=1 %command%` for diagnosis only.
+- **Always test a clean launch first** (no `PROTON_LOG`, no `WINEDEBUG`). NGS has been
+  seen to fast-fail (`Unhandled exception code c0000409`) in an *instrumented*
+  environment — logging can be the trigger, not the bug. Enable logging only to
+  diagnose an already-broken clean launch.
+- **Don't ship extra DLLs.** The game self-installs its own VC++ and legacy DirectX
+  redistributables into the prefix on first launch (visible as `dd_vcredist_*.log`).
+  The bundle ships only the VC++ runtime override (incl. `vcruntime140_threads.dll`).
+
+## Prerequisites (verify before installing)
+
+- Linux x64, Steam installed, logged in.
+- MapleStory (app `216150`) **installed** and **launched once from Steam** so the
+  prefix exists: `~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c/`.
+- A Proton tool selected for the app: **GE-Proton11-1** is the reference; Proton
+  Experimental or GE-Proton10-x are fallbacks for anti-cheat issues.
+- A working Vulkan/graphics stack (see *Distro prerequisites* — a fresh Fedora/Debian
+  box may be missing SELinux exceptions / 32-bit Vulkan / non-free firmware).
+- `python3` is only needed if downloading/extracting the payload zip (not if `files/`
+  is already present in the repo).
+
+## Setup procedure
+
+```bash
+git clone <this repo> linux_maplestory && cd linux_maplestory
+# Pre-flight: confirm the prefix exists (Steam must have launched the game once):
+test -d ~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c || \
+  echo "Launch MapleStory once from Steam first, then re-run."
+./install.sh            # applies runtime DLLs, Nexon Launcher, registry patches
+```
+
+Key `install.sh` flags you will use while retrying:
+- `--virtual-desktop` / `--desktop-size WxH` — for the `BadWindow`/`X_CreateWindow`
+  crash or alt-tab input loss under XWayland (Hyprland, Mint, GNOME/mutter).
+- `--kill` — stop any running MapleStory/Nexon helper processes before patching.
+- `--skip-runtime` / `--skip-alt-tab` — apply only one half of the patches.
+- `--launcher-source PATH` / `--mac-bottle PATH` — alternative Nexon Launcher sources.
+- `-h` — full flag list. (There is intentionally no `--install-proton-settings`.)
+
+## The retry loop
+
+Repeat until the client window is open and alive:
+
+1. **Launch through Steam** (GUI Play, or): `steam -applaunch 216150` (best effort;
+   the GUI "Play" button is authoritative).
+2. **Wait ~20–30s**, then **verify the client opened**:
+   - `pgrep -af -i 'MapleStory.exe'` returns a live process, OR
+   - the MapleStory game window is visible, OR
+   - the Nexon connector log reached `gamelaunch` and did **not** then log
+     `launch closed: <code>`.
+3. **If the client is open → done.** Stop and report success.
+4. **If it crashed → diagnose** using the decision tree, apply the fix, then go to 1.
+   Capture the signature from `~/steam-216150.log` **only if a clean (no-log) launch
+   already failed** — and re-test clean afterward.
+
+## Crash decision tree (apply one fix per retry)
+
+Read the crash signature (terminal output / `~/steam-216150.log` / connector log):
+
+| Signature | Cause | Fix to apply, then retry |
+|---|---|---|
+| `X Error of failed request: BadWindow ... X_CreateWindow` | XWayland window churn | `./install.sh --virtual-desktop` |
+| `Unhandled exception ... c0000409` / `0xc0000005`, **no** `BadWindow` | Nexon Game Security | (1) ensure a **clean** launch (no PROTON_LOG); (2) switch Proton to GE-Proton10-x or stable Proton; (3) Fedora → try `umip=off` kernel param |
+| DLL/module load failure, `Module not found` | redist not yet self-installed / bad launcher | launch via the Nexon Launcher (not the exe); re-run `./install.sh` |
+| `.reg` reported failed by installer | protonfixes skipped it | import the `.reg` via **Protontricks** for app `216150` |
+| Permission denied / AVC `denied { execmem }` | SELinux (Fedora) | `sudo setenforce 0` to test; permanent via `audit2allow` |
+| `Failed to create Vulkan instance` / black screen | missing 32-bit Vulkan / driver | Debian/Ubuntu: `sudo dpkg --add-architecture i386 && sudo apt install libvulkan1:i386` + matching `:i386` driver; enable `non-free-firmware` |
+| `ntsync` only as a missing-module log line | old kernel (<6.14) | benign fallback; try a backports/newer kernel if other fixes fail |
+
+Order of operations when unsure: **clean launch → `--virtual-desktop` → different
+Proton → distro prerequisite → Protontricks**. Apply one change per iteration so you
+know what fixed it.
+
+## Distro prerequisites (the bundle assumes these are satisfied)
+
+The reference setup is CachyOS (KDE Wayland), which ships these by default. A fresh
+install on another distro can crash for reasons unrelated to this bundle:
+
+- **Fedora:** SELinux is enforcing by default → `sudo setenforce 0` test, then
+  `audit2allow` for a permanent rule.
+- **Debian/Ubuntu:** 32-bit Vulkan + multiarch: `dpkg --add-architecture i386`,
+  `libvulkan1:i386`, matching `:i386` driver; enable `non-free-firmware`/`non-free`.
+- **Older stock kernels:** `ntsync` needs kernel **6.14+** (Debian 13 = 6.12, 12 = 6.1);
+  GE-Proton falls back to fsync/esync otherwise.
+- **GNOME on Wayland** (Fedora/Debian default): another XWayland compositor; use
+  `--virtual-desktop` for the `BadWindow`/alt-tab case.
+
+## Key paths
+
+- Repo / bundle root: `./` — `install.sh`, `patches/`, `files/` (VC++ runtime +
+  Nexon Launcher payload, gitignored), `README.md`.
+- Prefix: `~/.local/share/Steam/steamapps/compatdata/216150/pfx`
+- Proton log (diagnostic, opt-in per-game): `~/steam-216150.log`
+- Nexon connector log: `…/MapleStory/steam-connector.log` (look for `gamelaunch`
+  followed by `launch closed: <code>` or success).
+- Proton tool: `~/.local/share/Steam/compatibilitytools.d/GE-Proton11-1/`
+
+## Reference
+
+- `README.md` — full setup guide, Troubleshooting, Distro-specific prerequisites,
+  Collecting logs, Rollback. Read it for anything not covered inline here.

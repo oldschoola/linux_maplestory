@@ -109,7 +109,6 @@ Useful options:
 
 - `--dry-run` prints what would happen without modifying files or registry.
 - `--kill` terminates running MapleStory/Nexon helper processes before patching.
-- `--install-proton-settings` writes a marked env block to that Proton tool's `user_settings.py`; this is **off by default**: of the three values only `PROTON_LOG` is a real Proton option, and it just enables verbose logging (a diagnostic that costs performance and affects every game using that Proton build). Not required for the game to boot; see Troubleshooting.
 - `--fix-fkeys` sets `hid_apple fnmode=2` for this boot so Apple-compatible keyboards send real `F1`-`F12`; this requires sudo and is off by default because it is system-wide.
 - `--persist-fkeys` also writes the reboot-persistent `hid_apple fnmode=2` config; use this only after the temporary F-key fix works for you.
 - `--skip-runtime` applies only the alt-tab/input registry patches and does not download patch files.
@@ -289,6 +288,15 @@ cd /path/to/linux_maplestory
 - **Do not run `MapleStory.exe` directly.** Steam hands `nxsteam.exe` the Nexon launch ticket; launching the exe directly fails immediately.
 - **Hyprland / wlroots** — if window creation still misbehaves, add a Hyprland window rule (float/fullscreen) for the MapleStory window class, or run the game under `gamescope`.
 
+### Distro-specific prerequisites
+
+The installer handles the MapleStory/Nexon-specific patches only — it assumes Steam and a working Proton/Vulkan graphics stack are already in place. The reference setup is CachyOS (KDE Wayland), which ships these gaming prerequisites enabled by default. On other distros a fresh install can crash for reasons unrelated to this repo; check these first:
+
+- **Fedora — SELinux (enforcing by default).** Wine/Proton can be denied `execmem`/`execstack` or access to the prefix, crashing the game. Test with `sudo setenforce 0` and relaunch; if that fixes it, generate a permanent allow rule with `audit2allow` (or run Steam under the `unconfined_t` domain) rather than leaving SELinux disabled.
+- **Debian/Ubuntu — 32-bit Vulkan and multiarch.** Proton's 32-bit (syswow64) side — which MapleStory uses — needs a 32-bit Vulkan driver on the host. Enable it with `sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install libvulkan1:i386`, plus the matching 32-bit driver (`mesa-vulkan-drivers:i386` for AMD/Intel, or the `:i386` NVIDIA GL package matching your driver version). On Debian, also confirm the `non-free-firmware` / `non-free` repository components are enabled for GPU firmware and drivers.
+- **Older stock kernels.** `ntsync` (the Wine sync driver recent GE-Proton prefers) requires kernel **6.14+**; Debian 13 ships 6.12 and Debian 12 ships 6.1. GE-Proton falls back to fsync/esync when it is absent, so this is usually a performance gap rather than a crash — but on an old LTS kernel a backports/newer kernel is worth trying if you hit odd crashes.
+- **GNOME on Wayland (default on Fedora and Debian).** This is another XWayland compositor the reference setup does not test; if you get the `BadWindow`/`X_CreateWindow` launch crash or lose input after alt-tab, try `./install.sh --virtual-desktop` (the same fix as Hyprland/Mint).
+
 ### Collecting logs
 
 **Updated recently? Check this first.** The Wine virtual desktop is now off by default, and re-running the updated installer imports `90-disable-virtual-desktop.reg`, which **removes a virtual desktop you previously had enabled**. That re-introduces the `BadWindow`/`X_CreateWindow` close-right-after-launch crash on XWayland compositors (Hyprland, some Mint setups). Before collecting any logs, try:
@@ -305,7 +313,7 @@ to restore it. If relaunching still closes after the Nexon Launcher, the logs be
    PROTON_LOG=1 %command%
    ```
 
-   Reproduce the crash, then send the Proton log. Modern Proton/GE-Proton writes it to **`~/steam-216150.log`** (`$HOME/steam-<appid>.log`, or `$PROTON_LOG_DIR/...` if that is set). If it's not there, find it with `find ~ /tmp -maxdepth 2 -name 'steam-216150.log'`. It captures DLL load failures, unhandled exceptions, X errors, and anti-cheat (`BlackCipher`/`DwarfAxe`) failures — usually enough to pinpoint the cause in one file. (`./install.sh --install-proton-settings` also enables `PROTON_LOG`, but it affects every game sharing that Proton build and costs performance; the per-game launch option is preferred for diagnosis.)
+   Reproduce the crash, then send the Proton log. Modern Proton/GE-Proton writes it to **`~/steam-216150.log`** (`$HOME/steam-<appid>.log`, or `$PROTON_LOG_DIR/...` if that is set). If it's not there, find it with `find ~ /tmp -maxdepth 2 -name 'steam-216150.log'`. It captures DLL load failures, unhandled exceptions, X errors, and anti-cheat (`BlackCipher`/`DwarfAxe`) failures — usually enough to pinpoint the cause in one file.
 
    **Anti-cheat caveat — read before enabling logging.** `PROTON_LOG` (and the Wine debug channels it turns on) can *itself* trip Nexon Game Security — `NGClient64.aes` / `gamescale64.dll` have been observed to fast-fail (`Unhandled exception code c0000409`) in an instrumented environment. If the game launches cleanly with logging **off** but only dies with it **on**, the logging is the trigger, not a genuine bug. Always test a clean launch (no `PROTON_LOG`) first; enable logging only to diagnose an already-broken launch.
 
@@ -326,4 +334,5 @@ Also tell us your **compositor / desktop** (KDE, Hyprland, Gamescope, Mint-on-XW
 - `UseTakeFocus=N` is applied by default and is sufficient for alt-tab input on the reference (KDE) setup. The Wine virtual desktop is **off by default**; it was added for a reported alt-tab / `BadWindow` case under other compositors — enable it with `--virtual-desktop` only if you need it.
 - If `regedit` does not exit, the prefix is probably still active. Fully close MapleStory/Steam launch helpers, then run the import again.
 - If bare `F1`-`F12` do not work on an Apple-compatible keyboard under KDE/Linux, check `/sys/module/hid_apple/parameters/fnmode`. `fnmode=2` means function keys first.
+- **The game installs its own redistributables on first launch.** When the Nexon Launcher first runs MapleStory, it executes the bundled VC++ and legacy DirectX installers straight into the Proton prefix (visible as `dd_vcredist_*.log` under the prefix's `…/drive_c/users/steamuser/AppData/Local/Temp/`). This auto-populates the full legacy DirectX set — `d3dx9_*`, `d3dcompiler_*`, `x3daudio*`, `xaudio2*`, `xactengine*`, `xinput*` in both `system32` and `syswow64`. The installer therefore ships only the VC++ runtime override (`files/vc_runtime`, including `vcruntime140_threads.dll`, which the game's bundled redist omits); no `winetricks` or DirectX step is needed.
 

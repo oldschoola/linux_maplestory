@@ -14,7 +14,6 @@ PAYLOAD_ZIP="${PAYLOAD_ZIP:-${PATCH_ZIP:-}}"
 PAYLOAD_DIR="${PAYLOAD_DIR:-${PATCH_FILES_DIR:-}}"
 APPLY_RUNTIME=1
 APPLY_ALT_TAB=1
-INSTALL_PROTON_SETTINGS=0
 APPLY_FKEYS=0
 PERSIST_FKEYS=0
 KILL_RUNNING=0
@@ -53,7 +52,6 @@ Options:
   --patch-dir PATH               Use an already-extracted patch directory containing drive_c/ and vc_runtime/
   --launcher-source PATH         Path to a Nexon Launcher directory containing nexon_launcher.exe
   --mac-bottle PATH              Mac bottle root containing drive_c/Nexon/Launcher
-  --install-proton-settings      Add a marked linux_maplestory block to Proton's user_settings.py
   --fix-fkeys                   Set hid_apple fnmode=2 for this boot so Apple-compatible keyboards send F1-F12
   --persist-fkeys               Also persist hid_apple fnmode=2 across reboots; implies --fix-fkeys
   --skip-runtime                 Skip runtime/DLL/Nexon launcher file patches and runtime registry imports
@@ -94,7 +92,6 @@ while [ "$#" -gt 0 ]; do
     --patch-dir|--payload-dir) PAYLOAD_DIR="${2:?missing value for $1}"; shift 2 ;;
     --launcher-source) NEXON_LAUNCHER_SOURCE="${2:?missing value for --launcher-source}"; shift 2 ;;
     --mac-bottle) MAC_BOTTLE="${2:?missing value for --mac-bottle}"; shift 2 ;;
-    --install-proton-settings) INSTALL_PROTON_SETTINGS=1; shift ;;
     --fix-fkeys) APPLY_FKEYS=1; shift ;;
     --persist-fkeys) APPLY_FKEYS=1; PERSIST_FKEYS=1; shift ;;
     --skip-runtime) APPLY_RUNTIME=0; shift ;;
@@ -485,50 +482,6 @@ apply_runtime_registry() {
   reg_import "$PATCH_DIR/11-wine-direct3d-dll-overrides.reg" 'cb_access_map_w'
 }
 
-install_proton_settings() {
-  [ "$INSTALL_PROTON_SETTINGS" -eq 1 ] || return 0
-  local proton_dir target tmp
-  proton_dir="$(dirname -- "$PROTON")"
-  target="$proton_dir/user_settings.py"
-  log "Installing marked linux_maplestory block into $target"
-  backup_path "$target"
-
-  if [ "$DRY_RUN" -eq 1 ]; then
-    printf '[dry-run] update %q with linux_maplestory user_settings block\n' "$target"
-    return 0
-  fi
-
-  if [ ! -f "$target" ]; then
-    printf 'user_settings = {}\n' > "$target"
-  fi
-
-  tmp="$(mktemp)"
-  awk '
-    /# BEGIN linux_maplestory installer/ { skip=1; next }
-    /# END linux_maplestory installer/ { skip=0; next }
-    skip == 0 { print }
-  ' "$target" > "$tmp"
-  cat "$tmp" > "$target"
-  rm -f "$tmp"
-
-  cat >> "$target" <<'PY'
-
-# BEGIN linux_maplestory installer
-import os
-try:
-    user_settings
-except NameError:
-    user_settings = {}
-_lm_appid = os.environ.get("SteamAppId") or os.environ.get("SteamGameId") or "216150"
-_lm_prefix = os.environ.get("STEAM_COMPAT_DATA_PATH") or os.path.expanduser(f"~/.local/share/Steam/steamapps/compatdata/{_lm_appid}")
-user_settings.update({
-    "PROTON_LOG": "1",
-    "RAW_AUDIO_PARSE": "1",
-    "WINE_APPNAME_INI": os.path.join(_lm_prefix, "pfx", "drive_c", ".mappings.ini"),
-})
-# END linux_maplestory installer
-PY
-}
 
 apply_fkey_patch() {
   [ "$APPLY_FKEYS" -eq 1 ] || return 0
@@ -554,7 +507,7 @@ apply_fkey_patch() {
     return 0
   fi
 
-  if [ "$APPLY_RUNTIME" -eq 0 ] && [ "$APPLY_ALT_TAB" -eq 0 ] && [ "$INSTALL_PROTON_SETTINGS" -eq 0 ]; then
+  if [ "$APPLY_RUNTIME" -eq 0 ] && [ "$APPLY_ALT_TAB" -eq 0 ]; then
     die "F1-F12 hardware-mode patch failed or was cancelled"
   fi
 
@@ -585,7 +538,7 @@ verify_install() {
   fi
 }
 
-if [ "$APPLY_FKEYS" -eq 1 ] && [ "$APPLY_RUNTIME" -eq 0 ] && [ "$APPLY_ALT_TAB" -eq 0 ] && [ "$INSTALL_PROTON_SETTINGS" -eq 0 ]; then
+if [ "$APPLY_FKEYS" -eq 1 ] && [ "$APPLY_RUNTIME" -eq 0 ] && [ "$APPLY_ALT_TAB" -eq 0 ]; then
   require_file "$PATCH_DIR/20-hid-apple-fkeysfirst.sh"
   apply_fkey_patch
   log "F1-F12 hardware-mode patch complete"
@@ -605,7 +558,6 @@ backup_targets
 apply_runtime_files
 apply_alt_tab_patches
 apply_runtime_registry
-install_proton_settings
 verify_install
 apply_fkey_patch
 warn_hid_apple_fnmode
@@ -613,6 +565,3 @@ warn_hid_apple_fnmode
 log "Install complete"
 log "Backups: $BACKUP_DIR"
 log "Relaunch MapleStory through Steam and test input + alt-tab."
-if [ "$INSTALL_PROTON_SETTINGS" -eq 0 ]; then
-  log "Proton user_settings.py was not changed. --install-proton-settings is optional: of its values only PROTON_LOG (verbose logging) is a real Proton option, and it is a diagnostic, not a boot fix."
-fi
