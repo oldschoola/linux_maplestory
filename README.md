@@ -90,6 +90,30 @@ Useful options:
 
 The installer does not copy another user's Steam config or whole `pfx`; it patches the local prefix created by Steam.
 
+### Multiple Steam libraries / non-default install paths
+
+The installer auto-detects `~/.local/share/Steam` (then `~/.steam/steam`, then
+`~/.steam/debian-installation`). `--steam-root` is the Steam **library root that
+contains `steamapps/compatdata/216150/pfx`** — not where the Steam client is
+installed. If MapleStory is on **another Steam library** (e.g. a second drive
+mounted at `/mnt/ssd0/steam`, while the client stays under `~/.local/share/Steam`),
+auto-detection points at the client's empty/default prefix and the patches land
+there instead — silently doing nothing useful, or failing to find the Proton tool
+at all. Symptoms: `ERROR: could not find Proton executable`, or an "Install
+complete" that never fixes the game. In that case, point the installer at the
+library root that holds the game prefix:
+
+```bash
+./install.sh --steam-root /mnt/ssd0/steam \
+  --proton "/mnt/ssd0/steam/steamapps/common/Proton 11.0/proton"
+```
+
+`--steam-root` sets both the prefix path (`$STEAM_ROOT/steamapps/compatdata/216150`)
+and the common dir (`$STEAM_ROOT/steamapps/common`). You can also pass
+`--prefix-dir /mnt/ssd0/steam/steamapps/compatdata/216150` alone if you only need
+to redirect the prefix. Always pass `--proton` too when your Proton tool lives
+under that library rather than under `compatibilitytools.d`.
+
 ## F1-F12 / function-key hardware mode
 
 KDE global shortcuts are not the expected cause for bare `F1` through `F12`: the reference KDE config only binds modified combinations like `Ctrl+F1`, `Alt+F1`, or `Meta+F1`.

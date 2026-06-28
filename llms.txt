@@ -52,6 +52,7 @@ test -d ~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c || \
 ```
 
 Key `install.sh` flags you will use while retrying:
+- `--steam-root PATH` — the Steam **library root that contains `steamapps/compatdata/216150/pfx`** (e.g. `/mnt/ssd0/steam`), NOT where the client is installed. **Required if MapleStory is on a non-default library.** Auto-detection only checks `~/.local/share/Steam`, `~/.steam/steam`, `~/.steam/debian-installation`; without it the patches land on the client's empty prefix (silent no-op) or `resolve_proton` fails (`ERROR: could not find Proton executable`). Pair with `--proton PATH` if the Proton tool also lives under that library. Sets both the prefix (`$STEAM_ROOT/steamapps/compatdata/216150`) and the common dir.
 - `--virtual-desktop` — enables the Wine virtual desktop (OFF by default); use only for the `BadWindow`/`X_CreateWindow` crash or alt-tab input loss under XWayland (Hyprland, Mint, GNOME/mutter). `--desktop-size WxH` sets its size but does NOT enable it.
 - `--kill` — stop any running MapleStory/Nexon helper processes before patching.
 - `--skip-runtime` / `--skip-alt-tab` — apply only one half of the patches.
