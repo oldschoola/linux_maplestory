@@ -343,9 +343,7 @@ preflight_bundle() {
     require_file "$PATCH_DIR/20-hid-apple-fkeysfirst.sh"
   fi
   if [ "$APPLY_RUNTIME" -eq 1 ] && [ "$DRY_RUN" -eq 0 ]; then
-    require_file "$FILES_DIR/wine_patches/files/lib/wine/x86_64-windows/kernelbase.dll"
-    require_file "$FILES_DIR/wine_patches/files/lib/wine/x86_64-unix/win32u.so"
-    require_file "$FILES_DIR/wine_patches/files/lib/wine/x86_64-windows/dinput8.dll"
+    require_file "$PATCH_DIR/patch-wine-binaries.sh"
     payload_ready || die "payload files are missing; rerun with network access or --payload-zip /path/to/files.zip"
   fi
 }
@@ -463,28 +461,22 @@ apply_runtime_registry() {
 
 apply_wine_patches() {
   [ "$APPLY_RUNTIME" -eq 1 ] || return 0
-  local proton_dir ver rel src dst
+  local proton_dir ver
   proton_dir="$(CDPATH= cd -- "$(dirname -- "$PROTON")" && pwd)"
   ver="$(tr -d '\r\n' < "$proton_dir/version" 2>/dev/null || true)"
   case "$ver" in
     *GE-Proton11-1*) ;;
     *) log "Skipping Wine binary patches: Proton tool ($ver) is not GE-Proton11-1; these patches are build-specific."; return 0 ;;
   esac
-  log "Applying Wine binary patches to $proton_dir (stock files backed up to $BACKUP_DIR)"
-  for rel in \
-    files/lib/wine/x86_64-windows/kernelbase.dll \
-    files/lib/wine/x86_64-windows/dinput8.dll \
-    files/lib/wine/x86_64-unix/win32u.so ; do
-    src="$FILES_DIR/wine_patches/$rel"
-    dst="$proton_dir/$rel"
-    [ -f "$src" ] || { log "  missing patch source: $rel"; continue; }
-    [ -f "$dst" ] || { log "  skip (target absent, different Wine layout): $rel"; continue; }
-    [ "$DRY_RUN" -eq 0 ] && backup_path "$dst"
-    [ "$DRY_RUN" -eq 0 ] && chmod u+w -- "$dst"  # Wine binaries ship read-only on some setups; cp cannot overwrite without owner-write
-    if [ "$DRY_RUN" -eq 1 ]; then printf '[dry-run] copy %q -> %q\n' "$src" "$dst"; continue; fi
-    cp -a -- "$src" "$dst"
-    log "  patched: $rel"
-  done
+  log "Applying Wine binary patches to $proton_dir (offset-based; targets backed up to $BACKUP_DIR)"
+  [ "$DRY_RUN" -eq 0 ] && backup_path "$proton_dir/files/lib/wine/x86_64-windows/kernelbase.dll"
+  [ "$DRY_RUN" -eq 0 ] && backup_path "$proton_dir/files/lib/wine/x86_64-unix/win32u.so"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '[dry-run] %q %q\n' "$PATCH_DIR/patch-wine-binaries.sh" "$proton_dir"
+  else
+    "$PATCH_DIR/patch-wine-binaries.sh" "$proton_dir" \
+      || log "WARNING: a Wine binary patch did not apply (see lines above); if the kernelbase CharPrevExA patch failed, the 0xc0000005 launch crash may recur."
+  fi
 }
 
 
@@ -539,24 +531,6 @@ verify_install() {
     require_file "$PFX/drive_c/windows/syswow64/vcruntime140_threads.dll"
     require_file "$PFX/drive_c/.mappings.ini"
     require_file "$PFX/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db"
-    # Verify the Wine binary patches landed in the GE-Proton11-1 tool (load-bearing:
-    # kernelbase.dll fixes the 0xc0000005/Themida launch crash).
-    local wp_dir wp_ver wp_rel
-    wp_dir="$(CDPATH= cd -- "$(dirname -- "$PROTON")" && pwd)"
-    wp_ver="$(tr -d '\r\n' < "$wp_dir/version" 2>/dev/null || true)"
-    case "$wp_ver" in
-      *GE-Proton11-1*)
-        for wp_rel in \
-          files/lib/wine/x86_64-windows/kernelbase.dll \
-          files/lib/wine/x86_64-windows/dinput8.dll \
-          files/lib/wine/x86_64-unix/win32u.so ; do
-          if [ -f "$wp_dir/$wp_rel" ] && [ -f "$FILES_DIR/wine_patches/$wp_rel" ] && \
-             ! cmp -s -- "$wp_dir/$wp_rel" "$FILES_DIR/wine_patches/$wp_rel"; then
-            log "WARNING: $wp_dir/$wp_rel does not match the patched copy; the Wine binary patch did not land or was reverted, so the 0xc0000005/Themida launch crash may recur."
-          fi
-        done
-        ;;
-    esac
   fi
 }
 

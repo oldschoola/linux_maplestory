@@ -28,7 +28,7 @@ the decision tree, report exactly which signatures you saw and what you tried.
 - **Don't ship extra DLLs.** The game self-installs its own VC++ and legacy DirectX
   redistributables into the prefix on first launch (visible as `dd_vcredist_*.log`).
   The bundle ships only the VC++ runtime override (incl. `vcruntime140_threads.dll`).
-- **The installer modifies the GE-Proton11-1 tool in place.** `apply_wine_patches()` backs up and replaces three Wine binaries in `compatibilitytools.d/GE-Proton11-1/files/lib/wine/` — `x86_64-windows/kernelbase.dll` (fixes the `0xc0000005`/Themida launch crash), `x86_64-unix/win32u.so` (force-success MapleStory's `SystemParametersInfo` sticky/filter-keys calls), and `x86_64-windows/dinput8.dll`. The patches are **build-specific to GE-Proton11-1**; on any other Proton the step skips with a warning and the launch crash returns — so **use GE-Proton11-1**.
+- **The installer modifies the GE-Proton11-1 tool in place.** `apply_wine_patches()` runs `patches/patch-wine-binaries.sh`, which byte-patches two Wine binaries in `compatibilitytools.d/GE-Proton11-1/files/lib/wine/` — `x86_64-windows/kernelbase.dll` (CharPrevExA NULL-check that fixes the `0xc0000005` launch crash, plus HeapSetInformation/SetLastError) and `x86_64-unix/win32u.so` (force-success `SPI_SETSTICKYKEYS`/`SPI_SETFILTERKEYS`). No patched binaries are shipped; the patches are applied to the user's own GE-Proton11-1 and are **build-specific** — on any other Proton the step skips and the launch crash returns, so **use GE-Proton11-1**.
 
 ## Prerequisites (verify before installing)
 
@@ -114,7 +114,7 @@ install on another distro can crash for reasons unrelated to this bundle:
 - Nexon connector log: `…/MapleStory/steam-connector.log` (look for `gamelaunch`
   followed by `launch closed: <code>` or success).
 - Proton tool: `~/.local/share/Steam/compatibilitytools.d/GE-Proton11-1/`
-- Patched Wine binaries (copied into the tool by the installer): `files/wine_patches/files/lib/wine/{x86_64-windows/{kernelbase.dll,dinput8.dll},x86_64-unix/win32u.so}`
+- Wine binary patches (applied in place by the installer, not shipped): `patches/patch-wine-binaries.sh` byte-patches the GE-Proton11-1 tool's `kernelbase.dll` + `win32u.so`.
 
 ## Reference
 
