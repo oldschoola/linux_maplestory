@@ -351,6 +351,9 @@ preflight_bundle() {
     require_file "$PATCH_DIR/20-hid-apple-fkeysfirst.sh"
   fi
   if [ "$APPLY_RUNTIME" -eq 1 ] && [ "$DRY_RUN" -eq 0 ]; then
+    require_file "$FILES_DIR/wine_patches/files/lib/wine/x86_64-windows/kernelbase.dll"
+    require_file "$FILES_DIR/wine_patches/files/lib/wine/x86_64-unix/win32u.so"
+    require_file "$FILES_DIR/wine_patches/files/lib/wine/x86_64-windows/dinput8.dll"
     payload_ready || die "payload files are missing; rerun with network access or --payload-zip /path/to/files.zip"
   fi
 }
@@ -485,6 +488,31 @@ apply_runtime_registry() {
   reg_import "$PATCH_DIR/05-appdefaults-winver.reg" '"Version"="win10"'
 }
 
+apply_wine_patches() {
+  [ "$APPLY_RUNTIME" -eq 1 ] || return 0
+  local proton_dir ver rel src dst
+  proton_dir="$(CDPATH= cd -- "$(dirname -- "$PROTON")" && pwd)"
+  ver="$(tr -d '\r\n' < "$proton_dir/version" 2>/dev/null)"
+  case "$ver" in
+    *GE-Proton11-1*) ;;
+    *) log "Skipping Wine binary patches: Proton tool ($ver) is not GE-Proton11-1; these patches are build-specific."; return 0 ;;
+  esac
+  log "Applying Wine binary patches to $proton_dir (stock files backed up to $BACKUP_DIR)"
+  for rel in \
+    files/lib/wine/x86_64-windows/kernelbase.dll \
+    files/lib/wine/x86_64-windows/dinput8.dll \
+    files/lib/wine/x86_64-unix/win32u.so ; do
+    src="$FILES_DIR/wine_patches/$rel"
+    dst="$proton_dir/$rel"
+    [ -f "$src" ] || { log "  missing patch source: $rel"; continue; }
+    [ -f "$dst" ] || { log "  skip (target absent, different Wine layout): $rel"; continue; }
+    [ "$DRY_RUN" -eq 0 ] && backup_path "$dst"
+    if [ "$DRY_RUN" -eq 1 ]; then printf '[dry-run] copy %q -> %q\n' "$src" "$dst"; continue; fi
+    cp -a -- "$src" "$dst"
+    log "  patched: $rel"
+  done
+}
+
 
 apply_fkey_patch() {
   [ "$APPLY_FKEYS" -eq 1 ] || return 0
@@ -561,6 +589,7 @@ backup_targets
 apply_runtime_files
 apply_alt_tab_patches
 apply_runtime_registry
+apply_wine_patches
 verify_install
 apply_fkey_patch
 warn_hid_apple_fnmode
