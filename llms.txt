@@ -1,7 +1,7 @@
 # linux_maplestory
 
 > Gets MapleStory (Steam app `216150`) running on Linux under Proton by porting the
-> known-working macOS Nexon Launcher + VC++ runtime into the Steam Proton prefix.
+> known-working macOS VC++ runtime plus app-name/locale settings into the Steam Proton prefix.
 > This file is an actionable runbook for an LLM/agent to install, launch, and
 > **keep retrying through crashes until the game client window actually opens.**
 
@@ -48,7 +48,7 @@ git clone <this repo> linux_maplestory && cd linux_maplestory
 # Pre-flight: confirm the prefix exists (Steam must have launched the game once):
 test -d ~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c || \
   echo "Launch MapleStory once from Steam first, then re-run."
-./install.sh            # runtime DLLs + Nexon Launcher + registry patches + Wine binary patches to GE-Proton11-1
+./install.sh            # runtime DLLs + app-name/locale settings + registry patches + Wine binary patches to GE-Proton11-1
 ```
 
 Key `install.sh` flags you will use while retrying:
@@ -108,7 +108,7 @@ install on another distro can crash for reasons unrelated to this bundle:
 
 ## Key paths
 
-- Repo / bundle root: `./` — `install.sh`, `patches/`, `files/` (VC++ runtime + Nexon Launcher payload + `wine_patches/`), `README.md`.
+- Repo / bundle root: `./` — `install.sh`, `patches/`, `files/` (VC++ runtime), `README.md`.
 - Prefix: `~/.local/share/Steam/steamapps/compatdata/216150/pfx`
 - Proton log (diagnostic, opt-in per-game): `~/steam-216150.log`
 - Nexon connector log: `…/MapleStory/steam-connector.log` (look for `gamelaunch`

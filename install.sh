@@ -240,8 +240,6 @@ backup_path() {
 }
 
 payload_ready() {
-  [ -f "$FILES_DIR/drive_c/.mappings.ini" ] || return 1
-  [ -f "$FILES_DIR/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db" ] || return 1
   [ -f "$FILES_DIR/vc_runtime/system32/vcruntime140_threads.dll" ] || return 1
   [ -f "$FILES_DIR/vc_runtime/syswow64/vcruntime140_threads.dll" ] || return 1
   return 0

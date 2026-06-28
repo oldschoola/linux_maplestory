@@ -22,12 +22,15 @@ if [ ! -d "$PFX/drive_c" ]; then
   exit 1
 fi
 
-echo "Applying patch MapleStory app-name mapping"
-copy_file "$PAYLOAD_DIR/drive_c/.mappings.ini" "$PFX/drive_c/.mappings.ini"
+echo "Generating MapleStory app-name mapping (.mappings.ini)"
+printf '%s\n' 'MapleStory.exe=MapleStory' \
+  'nexon_client.exe=Nexon Launcher' \
+  'nexon_updater.exe=Nexon Updater' \
+  > "$PFX/drive_c/.mappings.ini"
 
-echo "Applying patch NexonLauncher apps-settings.db"
-copy_file "$PAYLOAD_DIR/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db" \
-  "$PFX/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db"
+echo "Generating NexonLauncher apps-settings.db (locale=en_US)"
+mkdir -p -- "$PFX/drive_c/users/steamuser/AppData/Roaming/NexonLauncher"
+printf '%s' '{"locale":"en_US"}' > "$PFX/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db"
 
 echo "Applying required patch VC++ 2022 runtime DLLs"
 for dll in \

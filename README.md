@@ -172,7 +172,7 @@ patches/make-virtual-desktop-patch.sh 2560x1440
 
 Use this only if you do not want the all-in-one installer.
 
-The VC++ DLL patch files and Nexon Launcher patch files are required. Download/extract the patch files first, then pass `PATCH_FILES_DIR`:
+The VC++ runtime DLLs are required (the `.mappings.ini` app-name mapping and NexonLauncher `apps-settings.db` locale setting are generated automatically). Download/extract the patch files first, then pass `PATCH_FILES_DIR`:
 
 ```bash
 cd /path/to/linux_maplestory
@@ -231,7 +231,6 @@ cd /path/to/linux_maplestory
 - **Crash right after "MapleStory is being launched" / `X Error of failed request: BadWindow ... X_CreateWindow`** — the Wine virtual-desktop patch fixes this: it makes Wine ignore window-manager reparenting churn under XWayland so window creation cannot fail. It is **off by default**; enable it with `./install.sh --virtual-desktop` (or `--desktop-size <W>x<H>`), or import `patches/02-virtual-desktop-<size>.reg` via Protontricks.
 - **Crash right after launch with `0xc0000005` and/or `Unhandled exception code c0000409`, but NO `BadWindow`/`X_CreateWindow`** — this is Nexon Game Security (`NGClient64.aes` + `gamescale64.dll`), not the window bug, so `--virtual-desktop` will **not** help. First make sure the game isn't running with `PROTON_LOG`/Wine debug channels on — NGS has been seen to fast-fail (`c0000409`) in an instrumented environment (see the caveat under Collecting logs); test a clean launch first. Beyond that it tends to be compositor / kernel / Proton-version specific — try GE-Proton10-x or stable Proton. The installer cannot fix the anti-cheat itself.
 - **A `.reg` still will not apply via the installer** — import it manually with Protontricks for Steam app `216150`: select the app, choose the default wineprefix, run regedit, then Registry → Import Registry File... and pick the `.reg`. Protontricks calls the Proton Wine binary directly and bypasses protonfixes.
-- **Nexon Launcher "not found" / `nexon_launcher.exe`** — Windows `.exe` files do **not** need the Linux executable (`+x`) bit; Wine runs them without it. If the installer reported the packaged copy missing after extraction, re-running it now works (detection accepts a non-executable file).
 - **Do not run `MapleStory.exe` directly.** Steam hands `nxsteam.exe` the Nexon launch ticket; launching the exe directly fails immediately.
 - **Hyprland / wlroots** — if window creation still misbehaves, add a Hyprland window rule (float/fullscreen) for the MapleStory window class, or run the game under `gamescope`.
 
