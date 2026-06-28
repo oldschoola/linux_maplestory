@@ -594,6 +594,7 @@ verify_install() {
 
 if [ "$APPLY_FKEYS" -eq 1 ] && [ "$APPLY_RUNTIME" -eq 0 ] && [ "$APPLY_ALT_TAB" -eq 0 ]; then
   require_file "$PATCH_DIR/20-hid-apple-fkeysfirst.sh"
+  ensure_sudo
   ensure_input_group
   apply_fkey_patch
   log "F1-F12 hardware-mode patch complete"
@@ -615,6 +616,7 @@ apply_alt_tab_patches
 apply_runtime_registry
 apply_wine_patches
 verify_install
+ensure_sudo
 ensure_input_group
 apply_fkey_patch
 warn_hid_apple_fnmode
