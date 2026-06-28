@@ -10,10 +10,6 @@ backups/
 *.log
 .payload/
 
-# Downloaded/extracted proprietary payloads: keep out of git
-files/
-files.zip
-*.zip
 
 # Generated virtual desktop patches, except bundled default
 patches/02-virtual-desktop-*.reg
