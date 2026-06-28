@@ -343,7 +343,6 @@ preflight_bundle() {
   require_file "$PATCH_DIR/90-disable-virtual-desktop.reg"
   require_file "$PATCH_DIR/10-nexon-launcher-protocol.reg"
   require_file "$PATCH_DIR/11-wine-direct3d-dll-overrides.reg"
-  require_file "$PATCH_DIR/12-proton-user-settings.py"
   require_file "$PATCH_DIR/13-apply-runtime-file-patches.sh"
   require_file "$PATCH_DIR/make-virtual-desktop-patch.sh"
   if [ "$APPLY_FKEYS" -eq 1 ]; then
