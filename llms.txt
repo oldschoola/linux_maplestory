@@ -28,14 +28,14 @@ the decision tree, report exactly which signatures you saw and what you tried.
 - **Don't ship extra DLLs.** The game self-installs its own VC++ and legacy DirectX
   redistributables into the prefix on first launch (visible as `dd_vcredist_*.log`).
   The bundle ships only the VC++ runtime override (incl. `vcruntime140_threads.dll`).
+- **The installer modifies the GE-Proton11-1 tool in place.** `apply_wine_patches()` backs up and replaces three Wine binaries in `compatibilitytools.d/GE-Proton11-1/files/lib/wine/` — `x86_64-windows/kernelbase.dll` (fixes the `0xc0000005`/Themida launch crash), `x86_64-unix/win32u.so` (force-success MapleStory's `SystemParametersInfo` sticky/filter-keys calls), and `x86_64-windows/dinput8.dll`. The patches are **build-specific to GE-Proton11-1**; on any other Proton the step skips with a warning and the launch crash returns — so **use GE-Proton11-1**.
 
 ## Prerequisites (verify before installing)
 
 - Linux x64, Steam installed, logged in.
 - MapleStory (app `216150`) **installed** and **launched once from Steam** so the
   prefix exists: `~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c/`.
-- A Proton tool selected for the app: **GE-Proton11-1** is the reference; Proton
-  Experimental or GE-Proton10-x are fallbacks for anti-cheat issues.
+- **GE-Proton11-1** must be selected as the app's compatibility tool (Steam → MapleStory → Properties → Compatibility → GE-Proton11-1). This is required, not optional: the bundle's Wine binary patches target this exact build.
 - A working Vulkan/graphics stack (see *Distro prerequisites* — a fresh Fedora/Debian
   box may be missing SELinux exceptions / 32-bit Vulkan / non-free firmware).
 - `python3` is only needed if downloading/extracting the payload zip (not if `files/`
@@ -48,7 +48,7 @@ git clone <this repo> linux_maplestory && cd linux_maplestory
 # Pre-flight: confirm the prefix exists (Steam must have launched the game once):
 test -d ~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c || \
   echo "Launch MapleStory once from Steam first, then re-run."
-./install.sh            # applies runtime DLLs, Nexon Launcher, registry patches
+./install.sh            # runtime DLLs + Nexon Launcher + registry patches + Wine binary patches to GE-Proton11-1
 ```
 
 Key `install.sh` flags you will use while retrying:
@@ -82,7 +82,8 @@ Read the crash signature (terminal output / `~/steam-216150.log` / connector log
 | Signature | Cause | Fix to apply, then retry |
 |---|---|---|
 | `X Error of failed request: BadWindow ... X_CreateWindow` | XWayland window churn | `./install.sh --virtual-desktop` |
-| `Unhandled exception ... c0000409` / `0xc0000005`, **no** `BadWindow` | Nexon Game Security | (1) ensure a **clean** launch (no PROTON_LOG); (2) switch Proton to GE-Proton10-x or stable Proton; (3) Fedora → try `umip=off` kernel param |
+| `0xc0000005` access violation at launch / Themida | Wine kernelbase bug | fixed automatically by the Wine binary patches; if it recurs, confirm GE-Proton11-1 is selected and the installer logged `patched: .../kernelbase.dll` |
+| `Unhandled exception ... c0000409`, **no** `BadWindow` | Nexon Game Security | (1) ensure a **clean** launch (no PROTON_LOG); (2) switch Proton to GE-Proton10-x or stable Proton; (3) Fedora → try `umip=off` kernel param |
 | DLL/module load failure, `Module not found` | redist not yet self-installed / bad launcher | launch via the Nexon Launcher (not the exe); re-run `./install.sh` |
 | `.reg` reported failed by installer | protonfixes skipped it | import the `.reg` via **Protontricks** for app `216150` |
 | Permission denied / AVC `denied { execmem }` | SELinux (Fedora) | `sudo setenforce 0` to test; permanent via `audit2allow` |
@@ -110,13 +111,13 @@ install on another distro can crash for reasons unrelated to this bundle:
 
 ## Key paths
 
-- Repo / bundle root: `./` — `install.sh`, `patches/`, `files/` (VC++ runtime +
-  Nexon Launcher payload, gitignored), `README.md`.
+- Repo / bundle root: `./` — `install.sh`, `patches/`, `files/` (VC++ runtime + Nexon Launcher payload + `wine_patches/`), `README.md`.
 - Prefix: `~/.local/share/Steam/steamapps/compatdata/216150/pfx`
 - Proton log (diagnostic, opt-in per-game): `~/steam-216150.log`
 - Nexon connector log: `…/MapleStory/steam-connector.log` (look for `gamelaunch`
   followed by `launch closed: <code>` or success).
 - Proton tool: `~/.local/share/Steam/compatibilitytools.d/GE-Proton11-1/`
+- Patched Wine binaries (copied into the tool by the installer): `files/wine_patches/files/lib/wine/{x86_64-windows/{kernelbase.dll,dinput8.dll},x86_64-unix/win32u.so}`
 
 ## Reference
 
