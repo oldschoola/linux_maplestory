@@ -5,11 +5,8 @@ APPID="${APPID:-216150}"
 STEAM_ROOT="${STEAM_ROOT:-$HOME/.local/share/Steam}"
 COMMON_DIR="${COMMON_DIR:-$STEAM_ROOT/steamapps/common}"
 PFX="${PFX:-$STEAM_ROOT/steamapps/compatdata/$APPID/pfx}"
-MAC_BOTTLE="${MAC_BOTTLE:-$COMMON_DIR/MapleStory Mac/MapleStory.app/Contents/SharedSupport/maplestoryna/support/maplestory}"
-NEXON_LAUNCHER_SOURCE="${NEXON_LAUNCHER_SOURCE:-}"
 BUNDLE_ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 PAYLOAD_DIR="${PAYLOAD_DIR:-${PATCH_FILES_DIR:-$BUNDLE_ROOT/files}}"
-PACKAGED_NEXON_LAUNCHER="$PAYLOAD_DIR/drive_c/Nexon/Launcher"
 
 copy_file() {
   local src="$1"
@@ -31,30 +28,6 @@ copy_file "$PAYLOAD_DIR/drive_c/.mappings.ini" "$PFX/drive_c/.mappings.ini"
 echo "Applying patch NexonLauncher apps-settings.db"
 copy_file "$PAYLOAD_DIR/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db" \
   "$PFX/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db"
-
-if [ -f "$PFX/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
-  echo "Nexon Launcher already exists in prefix; leaving it in place"
-elif [ -f "$PACKAGED_NEXON_LAUNCHER/nexon_launcher.exe" ]; then
-  echo "Copying patch Nexon Launcher"
-  mkdir -p -- "$PFX/drive_c/Nexon"
-  cp -a -- "$PACKAGED_NEXON_LAUNCHER" "$PFX/drive_c/Nexon/Launcher"
-elif [ -n "$NEXON_LAUNCHER_SOURCE" ] && [ -f "$NEXON_LAUNCHER_SOURCE/nexon_launcher.exe" ]; then
-  echo "Copying Nexon Launcher from NEXON_LAUNCHER_SOURCE"
-  mkdir -p -- "$PFX/drive_c/Nexon"
-  cp -a -- "$NEXON_LAUNCHER_SOURCE" "$PFX/drive_c/Nexon/Launcher"
-elif [ -f "$MAC_BOTTLE/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
-  echo "Copying Nexon Launcher from Mac bottle"
-  mkdir -p -- "$PFX/drive_c/Nexon"
-  cp -a -- "$MAC_BOTTLE/drive_c/Nexon/Launcher" "$PFX/drive_c/Nexon/Launcher"
-else
-  echo "ERROR: Nexon Launcher is missing from prefix and no source was found." >&2
-  echo "Expected one of:" >&2
-  echo "  $PFX/drive_c/Nexon/Launcher/nexon_launcher.exe" >&2
-  echo "  $PACKAGED_NEXON_LAUNCHER/nexon_launcher.exe" >&2
-  [ -n "$NEXON_LAUNCHER_SOURCE" ] && echo "  $NEXON_LAUNCHER_SOURCE/nexon_launcher.exe" >&2
-  echo "  $MAC_BOTTLE/drive_c/Nexon/Launcher/nexon_launcher.exe" >&2
-  exit 1
-fi
 
 echo "Applying required patch VC++ 2022 runtime DLLs"
 for dll in \

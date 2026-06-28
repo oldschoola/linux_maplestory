@@ -6,10 +6,8 @@ STEAM_ROOT="${STEAM_ROOT:-}"
 PREFIX_DIR="${PREFIX_DIR:-}"
 COMMON_DIR="${COMMON_DIR:-}"
 PROTON="${PROTON:-}"
-MAC_BOTTLE="${MAC_BOTTLE:-}"
 DESKTOP_SIZE="${VIRTUAL_DESKTOP_SIZE:-3840x2160}"
 USE_VIRTUAL_DESKTOP="${USE_VIRTUAL_DESKTOP:-0}"
-NEXON_LAUNCHER_SOURCE="${NEXON_LAUNCHER_SOURCE:-}"
 PAYLOAD_ZIP="${PAYLOAD_ZIP:-${PATCH_ZIP:-}}"
 PAYLOAD_DIR="${PAYLOAD_DIR:-${PATCH_FILES_DIR:-}}"
 APPLY_RUNTIME=1
@@ -50,11 +48,9 @@ Options:
   --resolution WIDTHxHEIGHT      Alias for --desktop-size
   --patch-zip PATH               Use a local patch zip instead of downloading one
   --patch-dir PATH               Use an already-extracted patch directory containing drive_c/ and vc_runtime/
-  --launcher-source PATH         Path to a Nexon Launcher directory containing nexon_launcher.exe
-  --mac-bottle PATH              Mac bottle root containing drive_c/Nexon/Launcher
   --fix-fkeys                   Set hid_apple fnmode=2 for this boot so Apple-compatible keyboards send F1-F12
   --persist-fkeys               Also persist hid_apple fnmode=2 across reboots; implies --fix-fkeys
-  --skip-runtime                 Skip runtime/DLL/Nexon launcher file patches and runtime registry imports
+  --skip-runtime                 Skip runtime/DLL file patches and runtime registry imports
   --skip-alt-tab                 Skip UseTakeFocus/virtual-desktop registry patches
   --kill                         Terminate running MapleStory/Nexon helper processes before patching
   --dry-run                      Print actions without modifying files or registry
@@ -62,8 +58,8 @@ Options:
   --payload-zip PATH             Backward-compatible alias for --patch-zip
   --payload-dir PATH             Backward-compatible alias for --patch-dir
 
-Environment overrides: APPID, STEAM_ROOT, PREFIX_DIR, PROTON, MAC_BOTTLE,
-VIRTUAL_DESKTOP_SIZE, NEXON_LAUNCHER_SOURCE, PATCH_ZIP, PATCH_FILES_DIR.
+Environment overrides: APPID, STEAM_ROOT, PREFIX_DIR, PROTON,
+VIRTUAL_DESKTOP_SIZE, PATCH_ZIP, PATCH_FILES_DIR.
 EOF
 }
 
@@ -90,8 +86,6 @@ while [ "$#" -gt 0 ]; do
     --desktop-size|--resolution) DESKTOP_SIZE="${2:?missing value for $1}"; USE_VIRTUAL_DESKTOP=1; shift 2 ;;
     --patch-zip|--payload-zip) PAYLOAD_ZIP="${2:?missing value for $1}"; shift 2 ;;
     --patch-dir|--payload-dir) PAYLOAD_DIR="${2:?missing value for $1}"; shift 2 ;;
-    --launcher-source) NEXON_LAUNCHER_SOURCE="${2:?missing value for --launcher-source}"; shift 2 ;;
-    --mac-bottle) MAC_BOTTLE="${2:?missing value for --mac-bottle}"; shift 2 ;;
     --fix-fkeys) APPLY_FKEYS=1; shift ;;
     --persist-fkeys) APPLY_FKEYS=1; PERSIST_FKEYS=1; shift ;;
     --skip-runtime) APPLY_RUNTIME=0; shift ;;
@@ -122,8 +116,6 @@ fi
 COMMON_DIR="${COMMON_DIR:-$STEAM_ROOT/steamapps/common}"
 PREFIX_DIR="${PREFIX_DIR:-$STEAM_ROOT/steamapps/compatdata/$APPID}"
 PFX="$PREFIX_DIR/pfx"
-MAC_BOTTLE_DEFAULT="$COMMON_DIR/MapleStory Mac/MapleStory.app/Contents/SharedSupport/maplestoryna/support/maplestory"
-MAC_BOTTLE="${MAC_BOTTLE:-$MAC_BOTTLE_DEFAULT}"
 BACKUP_DIR="$PREFIX_DIR/linux_maplestory-backups/$(date +%Y%m%d-%H%M%S)"
 
 require_file() { [ -f "$1" ] || die "missing required file: $1"; }
@@ -251,7 +243,6 @@ payload_ready() {
   [ -f "$FILES_DIR/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db" ] || return 1
   [ -f "$FILES_DIR/vc_runtime/system32/vcruntime140_threads.dll" ] || return 1
   [ -f "$FILES_DIR/vc_runtime/syswow64/vcruntime140_threads.dll" ] || return 1
-  [ -f "$FILES_DIR/drive_c/Nexon/Launcher/nexon_launcher.exe" ] || return 1
   return 0
 }
 
@@ -396,25 +387,6 @@ check_dependencies() {
   fi
 }
 
-preflight_runtime_sources() {
-  [ "$APPLY_RUNTIME" -eq 1 ] || return 0
-
-  if [ -f "$PFX/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
-    return 0
-  fi
-  if [ -n "$NEXON_LAUNCHER_SOURCE" ] && [ -f "$NEXON_LAUNCHER_SOURCE/nexon_launcher.exe" ]; then
-    return 0
-  fi
-  if [ -f "$FILES_DIR/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
-    return 0
-  fi
-  if [ -f "$MAC_BOTTLE/drive_c/Nexon/Launcher/nexon_launcher.exe" ]; then
-    return 0
-  fi
-
-  die "runtime patch set needs Nexon Launcher, but the packaged copy is missing. Restore files/drive_c/Nexon/Launcher or provide --launcher-source PATH / --mac-bottle PATH."
-}
-
 backup_targets() {
   log "Backing up touched prefix files to $BACKUP_DIR"
   backup_path "$PFX/user.reg"
@@ -446,11 +418,11 @@ apply_runtime_files() {
   [ "$APPLY_RUNTIME" -eq 1 ] || return 0
   log "Applying required runtime/DLL file payloads"
   if [ "$DRY_RUN" -eq 1 ]; then
-    printf '[dry-run] APPID=%q STEAM_ROOT=%q PFX=%q COMMON_DIR=%q MAC_BOTTLE=%q NEXON_LAUNCHER_SOURCE=%q PAYLOAD_DIR=%q %q\n' \
-      "$APPID" "$STEAM_ROOT" "$PFX" "$COMMON_DIR" "$MAC_BOTTLE" "$NEXON_LAUNCHER_SOURCE" "$FILES_DIR" "$PATCH_DIR/13-apply-runtime-file-patches.sh"
+    printf '[dry-run] APPID=%q STEAM_ROOT=%q PFX=%q COMMON_DIR=%q PAYLOAD_DIR=%q %q\n' \
+      "$APPID" "$STEAM_ROOT" "$PFX" "$COMMON_DIR" "$FILES_DIR" "$PATCH_DIR/13-apply-runtime-file-patches.sh"
   else
     APPID="$APPID" STEAM_ROOT="$STEAM_ROOT" PFX="$PFX" COMMON_DIR="$COMMON_DIR" \
-    MAC_BOTTLE="$MAC_BOTTLE" NEXON_LAUNCHER_SOURCE="$NEXON_LAUNCHER_SOURCE" PAYLOAD_DIR="$FILES_DIR" \
+    PAYLOAD_DIR="$FILES_DIR" \
     "$PATCH_DIR/13-apply-runtime-file-patches.sh"
   fi
 }
@@ -566,7 +538,6 @@ verify_install() {
     require_file "$PFX/drive_c/windows/syswow64/vcruntime140_threads.dll"
     require_file "$PFX/drive_c/.mappings.ini"
     require_file "$PFX/drive_c/users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db"
-    require_file "$PFX/drive_c/Nexon/Launcher/nexon_launcher.exe"
     # Verify the Wine binary patches landed in the GE-Proton11-1 tool (load-bearing:
     # kernelbase.dll fixes the 0xc0000005/Themida launch crash).
     local wp_dir wp_ver wp_rel
@@ -603,7 +574,6 @@ require_dir "$COMMON_DIR"
 require_dir "$PFX/drive_c"
 resolve_proton
 check_processes
-preflight_runtime_sources
 backup_targets
 apply_runtime_files
 apply_alt_tab_patches
