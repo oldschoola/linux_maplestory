@@ -63,8 +63,7 @@ Key `install.sh` flags you will use while retrying:
 
 Repeat until the client window is open and alive:
 
-1. **Launch through Steam** (GUI Play, or): `steam -applaunch 216150` (best effort;
-   the GUI "Play" button is authoritative).
+1. **Launch through Steam** — the GUI "Play" button is authoritative. Programmatically: `steam steam://rungameid/216150` (or `steam -applaunch 216150`). **Never run `MapleStory.exe` directly** — Steam must hand `nxsteam.exe` the launch ticket.
 2. **Wait ~20–30s**, then **verify the client opened**:
    - `pgrep -af -i 'MapleStory.exe'` returns a live process, OR
    - the MapleStory game window is visible, OR

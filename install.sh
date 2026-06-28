@@ -507,6 +507,7 @@ apply_wine_patches() {
     [ -f "$src" ] || { log "  missing patch source: $rel"; continue; }
     [ -f "$dst" ] || { log "  skip (target absent, different Wine layout): $rel"; continue; }
     [ "$DRY_RUN" -eq 0 ] && backup_path "$dst"
+    [ "$DRY_RUN" -eq 0 ] && chmod u+w -- "$dst"  # Wine binaries ship read-only on some setups; cp cannot overwrite without owner-write
     if [ "$DRY_RUN" -eq 1 ]; then printf '[dry-run] copy %q -> %q\n' "$src" "$dst"; continue; fi
     cp -a -- "$src" "$dst"
     log "  patched: $rel"
