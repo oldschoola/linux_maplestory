@@ -6,24 +6,6 @@ This repo documents and automates the Linux/Proton setup used to run the Steam W
 
 ![Screenshot](screen.png)
 
-## What this repo does not include
-
-The GitHub repo intentionally does **not** track proprietary patch files:
-
-- Nexon Launcher files
-- Microsoft/VC++ runtime DLL patch files
-- `files.zip`
-- extracted `files/`
-
-`install.sh` downloads `files.zip` automatically from these mirrors, in order:
-
-1. Catbox: https://files.catbox.moe/qaxsw6.zip
-2. x0.at: https://x0.at/96Ia.zip
-3. station307: https://l.station307.com/23wXxZg1fohbhAkbHN8wMj/files.zip
-4. LimeWire: https://limewire.com/d/lzRB1#nDRoOiUHPA
-5. Google Drive: https://drive.google.com/file/d/1ybJcwEGPQF3heLJnafpPX7H7kezwcvqF/view?usp=sharing
-
-You can also pass your own local patch zip or extracted patch directory.
 
 ## Current reference setup
 
@@ -47,22 +29,6 @@ Join our server if you need help! https://discord.gg/eDhWPJVyBF
 WARNING: this is very WIP. Although this setup uses files from the MapleStory Mac package/runtime path, Nexon/BlackCipher anti-cheat may still reject, break, or flag the setup. Use at your own risk, and expect updates to break things. I play on my main with it personaly.
 This patch does not touch the anticheat at all and in fact it still runs along side the game, like the MacOS version. I am using the mac os wine environment files and registry edits to make this work. This patch with the help of AI took under 40 minutes to make.
 
-## Required patch layout
-
-Automatic download should create this layout under the repo root:
-
-```text
-files/
-  drive_c/
-    .mappings.ini
-    Nexon/Launcher/nexon_launcher.exe
-    users/steamuser/AppData/Roaming/NexonLauncher/apps-settings.db
-  vc_runtime/
-    system32/*.dll
-    syswow64/*.dll
-```
-
-Do not commit `files.zip` or extracted `files/` patch files. They are ignored by `.gitignore`.
 
 ## Install / first launch
 
@@ -71,13 +37,7 @@ Do not commit `files.zip` or extracted `files/` patch files. They are ignored by
 3. In Steam, open MapleStory properties:
    - Compatibility: force Proton/GE-Proton if needed.
 4. Launch MapleStory once from Steam so Proton creates the prefix:
-
-   ```bash
-   steam steam://rungameid/216150
-   ```
-
 5. Close MapleStory before applying patches.
-6. Do not run `MapleStory.exe` directly. Steam provides the Nexon launch ticket through `nxsteam.exe`.
 
 ## All-in-one installer
 
@@ -90,20 +50,7 @@ cd /path/to/linux_maplestory
 
 The Wine virtual desktop is **off by default**. Enable it only if you hit the
 `BadWindow`/`X_CreateWindow` launch crash or lose keyboard input after alt-tab
-(common under XWayland: Hyprland, some Mint setups):
-
-```bash
-cd /path/to/linux_maplestory
-./install.sh --virtual-desktop                            # enable at the default size (1920x1080)
-./install.sh --virtual-desktop --desktop-size 2560x1440   # enable at a custom size
-```
-
-Offline/manual patch options:
-
-```bash
-./install.sh --patch-zip /path/to/files.zip
-./install.sh --patch-dir /path/to/files
-```
+(common under XWayland: Hyprland, some Mint setups) `--virtual-desktop`
 
 Useful options:
 
