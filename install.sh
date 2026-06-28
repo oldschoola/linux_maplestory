@@ -548,6 +548,41 @@ ensure_input_group() {
   fi
 }
 
+prompt_virtual_desktop() {
+  # Ask which virtual-desktop size to use instead of assuming a hardcoded default.
+  # Skipped (VD stays off) when: already opted in via --virtual-desktop, alt-tab
+  # patches skipped, dry-run, or non-interactive stdin.
+  [ "$USE_VIRTUAL_DESKTOP" -eq 1 ] && return 0
+  [ "$APPLY_ALT_TAB" -eq 0 ] && return 0
+  [ "$DRY_RUN" -eq 0 ] || return 0
+  [ -t 0 ] || return 0
+  cat <<'MSG'
+Wine virtual desktop is optional (it helps with the BadWindow/X_CreateWindow
+launch crash under some XWayland compositors). Pick a size to enable it, or
+press Enter to leave it off.
+  1) Off (default)
+  2) 1920x1080
+  3) 2560x1440
+  4) 3840x2160
+MSG
+  printf "Choice [1-4 or WxH, default 1]: "
+  local choice
+  read -r choice || choice=""
+  case "$choice" in
+    1|"") ;;
+    2) USE_VIRTUAL_DESKTOP=1; DESKTOP_SIZE=1920x1080 ;;
+    3) USE_VIRTUAL_DESKTOP=1; DESKTOP_SIZE=2560x1440 ;;
+    4) USE_VIRTUAL_DESKTOP=1; DESKTOP_SIZE=3840x2160 ;;
+    *)
+      if [[ "$choice" =~ ^[0-9]+x[0-9]+$ ]]; then
+        USE_VIRTUAL_DESKTOP=1; DESKTOP_SIZE="$choice"
+      else
+        log "Invalid choice '$choice'; leaving the virtual desktop off."
+      fi
+      ;;
+  esac
+}
+
 verify_install() {
   [ "$DRY_RUN" -eq 0 ] || return 0
   log "Verifying installed files"
@@ -577,6 +612,7 @@ resolve_proton
 check_processes
 backup_targets
 apply_runtime_files
+prompt_virtual_desktop
 apply_alt_tab_patches
 apply_runtime_registry
 apply_wine_patches

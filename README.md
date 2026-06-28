@@ -59,7 +59,7 @@ Useful options:
 - `--fix-fkeys` / `--persist-fkeys` control the hid_apple F-key mode (`fnmode=2`, so Apple-compatible keyboards send real `F1`–`F12`). **On by default** — the installer applies `--persist-fkeys` (also written to `/etc/modprobe.d` for reboot persistence); requires sudo. Use `--skip-runtime --skip-alt-tab` to run only this step.
 - `--skip-runtime` applies only the alt-tab/input registry patches and does not download patch files.
 - `--skip-alt-tab` applies only the launch/runtime patch set.
-- `--virtual-desktop` enables the Wine virtual desktop (off by default); `--desktop-size WxH` also enables it at a custom size. Only needed for the BadWindow/X_CreateWindow launch crash or alt-tab input loss under XWayland.
+- The Wine virtual desktop is **off by default**. An interactive `./install.sh` asks whether to enable it and at what size (1920×1080 / 2560×1440 / 3840×2160 / custom); `--virtual-desktop` enables it non-interactively at the default size, and `--desktop-size WxH` only sets the size (it does not enable the virtual desktop on its own). Only needed for the `BadWindow`/`X_CreateWindow` launch crash or alt-tab input loss under XWayland.
 - `--steam-root PATH`, `--prefix-dir PATH`, and `--proton PATH` override auto-detection.
 
 The installer does not copy another user's Steam config or whole `pfx`; it patches the local prefix created by Steam.
