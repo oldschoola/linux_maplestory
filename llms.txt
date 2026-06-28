@@ -44,11 +44,14 @@ the decision tree, report exactly which signatures you saw and what you tried.
 ## Setup procedure
 
 ```bash
-git clone <this repo> linux_maplestory && cd linux_maplestory
-# Pre-flight: confirm the prefix exists (Steam must have launched the game once):
-test -d ~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c || \
+# Pre-flight: confirm the prefix exists (Steam must have launched the game once).
+# If MapleStory is on a non-default library, export STEAM_ROOT to that library root
+# (e.g. /mnt/ssd0/steam) — auto-detection only checks ~/.local/share/Steam:
+STEAM_ROOT="${STEAM_ROOT:-$HOME/.local/share/Steam}"
+test -d "$STEAM_ROOT/steamapps/compatdata/216150/pfx/drive_c" || \
   echo "Launch MapleStory once from Steam first, then re-run."
 ./install.sh            # runtime DLLs + app-name/locale settings + registry patches + Wine binary patches to GE-Proton11-1
+# (if on a secondary library: ./install.sh --steam-root /mnt/ssd0/steam --proton /path/to/proton)
 ```
 
 Key `install.sh` flags you will use while retrying:
