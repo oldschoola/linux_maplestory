@@ -94,8 +94,8 @@ The Wine virtual desktop is **off by default**. Enable it only if you hit the
 
 ```bash
 cd /path/to/linux_maplestory
-./install.sh --virtual-desktop          # enable at the default size (3840x2160)
-./install.sh --desktop-size 2560x1440   # enable at a custom size
+./install.sh --virtual-desktop                            # enable at the default size (1920x1080)
+./install.sh --virtual-desktop --desktop-size 2560x1440   # enable at a custom size
 ```
 
 Offline/manual patch options:
@@ -165,7 +165,7 @@ What it does:
 - Creates a Lutris Steam-runner entry for Steam app id `216150`.
 - Prompts whether to enable the Wine virtual desktop (off by default; only needed for the `BadWindow`/`X_CreateWindow` launch crash or alt-tab input loss under XWayland).
 - Clones/updates this repo into Lutris cache.
-- Runs `install.sh --kill` (adds `--desktop-size <size>` only if you pick a size).
+- Runs `install.sh --kill` (adds `--virtual-desktop --desktop-size <size>` only if you opt into the virtual desktop).
 
 MapleStory must still be installed through Steam and launched once first so the Proton prefix exists. The Lutris entry launches the Steam build; it does not run `MapleStory.exe` directly.
 
@@ -209,8 +209,9 @@ fi
 STEAM_COMPAT_DATA_PATH="$PREFIX" \
 STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_ROOT" \
 SteamAppId="$APPID" SteamGameId="$APPID" \
-"$PROTON" run regedit /S patches/03-combined-alt-tab-fix-3840x2160.reg
+"$PROTON" run regedit /S patches/01-usetakefocus.reg
 ```
+This imports only the focus patch (`UseTakeFocus=N`), matching the installer default — **no virtual desktop**. For the `BadWindow`/`X_CreateWindow` launch crash, generate and import the virtual-desktop patch: `patches/make-virtual-desktop-patch.sh 1920x1080` then import `patches/02-virtual-desktop-1920x1080.reg` (or `patches/03-combined-alt-tab-fix-1920x1080.reg` for focus + virtual desktop at once).
 
 If that import prints `ProtonFixes [...] WARN: Skipping fix execution...` it is harmless (regedit still runs). The all-in-one installer verifies every import and falls back to the bundled Wine binary if needed; for manual imports that don't land, use Protontricks instead — see Troubleshooting.
 

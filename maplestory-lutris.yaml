@@ -15,9 +15,9 @@ script:
         id: DESKTOP_SIZE
         options:
           - "disabled": "No virtual desktop (default)"
-          - "3840x2160": "3840x2160 / 4K"
-          - "2560x1440": "2560x1440 / 1440p"
           - "1920x1080": "1920x1080 / 1080p"
+          - "2560x1440": "2560x1440 / 1440p"
+          - "3840x2160": "3840x2160 / 4K"
         preselect: "disabled"
     - execute:
         disable_runtime: true
@@ -36,7 +36,7 @@ script:
           if [ "$INPUT_DESKTOP_SIZE" = "disabled" ]; then
             "$repo/install.sh" --kill
           else
-            "$repo/install.sh" --kill --desktop-size "$INPUT_DESKTOP_SIZE"
+            "$repo/install.sh" --kill --virtual-desktop --desktop-size "$INPUT_DESKTOP_SIZE"
           fi
 
 install_complete_text: |

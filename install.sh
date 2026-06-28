@@ -6,7 +6,7 @@ STEAM_ROOT="${STEAM_ROOT:-}"
 PREFIX_DIR="${PREFIX_DIR:-}"
 COMMON_DIR="${COMMON_DIR:-}"
 PROTON="${PROTON:-}"
-DESKTOP_SIZE="${VIRTUAL_DESKTOP_SIZE:-3840x2160}"
+DESKTOP_SIZE="${VIRTUAL_DESKTOP_SIZE:-1920x1080}"
 USE_VIRTUAL_DESKTOP="${USE_VIRTUAL_DESKTOP:-0}"
 PAYLOAD_ZIP="${PAYLOAD_ZIP:-${PATCH_ZIP:-}}"
 PAYLOAD_DIR="${PAYLOAD_DIR:-${PATCH_FILES_DIR:-}}"
@@ -44,7 +44,8 @@ Options:
   --proton PATH                  Proton executable to use for regedit imports
   --virtual-desktop              Enable the Wine virtual desktop (OFF by default). Needed only if you hit the
                                  BadWindow/X_CreateWindow launch crash or lose input after alt-tab (common under XWayland: Hyprland/Mint).
-  --desktop-size WIDTHxHEIGHT    Set the Wine virtual desktop size AND enable it (default: 3840x2160)
+  --desktop-size WIDTHxHEIGHT    Set the virtual desktop size for --virtual-desktop (default: 1920x1080);
+                                 does NOT enable the virtual desktop on its own.
   --resolution WIDTHxHEIGHT      Alias for --desktop-size
   --patch-zip PATH               Use a local patch zip instead of downloading one
   --patch-dir PATH               Use an already-extracted patch directory containing drive_c/ and vc_runtime/
@@ -83,7 +84,7 @@ while [ "$#" -gt 0 ]; do
     --prefix-dir) PREFIX_DIR="${2:?missing value for --prefix-dir}"; shift 2 ;;
     --proton) PROTON="${2:?missing value for --proton}"; shift 2 ;;
     --virtual-desktop) USE_VIRTUAL_DESKTOP=1; shift ;;
-    --desktop-size|--resolution) DESKTOP_SIZE="${2:?missing value for $1}"; USE_VIRTUAL_DESKTOP=1; shift 2 ;;
+    --desktop-size|--resolution) DESKTOP_SIZE="${2:?missing value for $1}"; shift 2 ;;
     --patch-zip|--payload-zip) PAYLOAD_ZIP="${2:?missing value for $1}"; shift 2 ;;
     --patch-dir|--payload-dir) PAYLOAD_DIR="${2:?missing value for $1}"; shift 2 ;;
     --fix-fkeys) APPLY_FKEYS=1; shift ;;
@@ -448,7 +449,7 @@ apply_alt_tab_patches() {
   else
     log "Wine virtual desktop disabled (default); removing any prior virtual-desktop keys"
     reg_import "$PATCH_DIR/90-disable-virtual-desktop.reg"
-    log "Pass --virtual-desktop (or --desktop-size WxH) to enable it; needed for the BadWindow/X_CreateWindow launch crash and alt-tab input loss under XWayland."
+    log "Pass --virtual-desktop to enable it (optionally with --desktop-size WxH for a custom size); needed for the BadWindow/X_CreateWindow launch crash and alt-tab input loss under XWayland."
   fi
 }
 

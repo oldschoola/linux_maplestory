@@ -13,4 +13,4 @@ backups/
 
 # Generated virtual desktop patches, except bundled default
 patches/02-virtual-desktop-*.reg
-!patches/02-virtual-desktop-3840x2160.reg
+!patches/02-virtual-desktop-1920x1080.reg

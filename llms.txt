@@ -52,11 +52,9 @@ test -d ~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c || \
 ```
 
 Key `install.sh` flags you will use while retrying:
-- `--virtual-desktop` / `--desktop-size WxH` — for the `BadWindow`/`X_CreateWindow`
-  crash or alt-tab input loss under XWayland (Hyprland, Mint, GNOME/mutter).
+- `--virtual-desktop` — enables the Wine virtual desktop (OFF by default); use only for the `BadWindow`/`X_CreateWindow` crash or alt-tab input loss under XWayland (Hyprland, Mint, GNOME/mutter). `--desktop-size WxH` sets its size but does NOT enable it.
 - `--kill` — stop any running MapleStory/Nexon helper processes before patching.
 - `--skip-runtime` / `--skip-alt-tab` — apply only one half of the patches.
-- `--launcher-source PATH` / `--mac-bottle PATH` — alternative Nexon Launcher sources.
 - `-h` — full flag list. (There is intentionally no `--install-proton-settings`.)
 
 ## The retry loop

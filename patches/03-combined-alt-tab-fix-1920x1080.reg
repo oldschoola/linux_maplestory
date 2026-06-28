@@ -7,4 +7,4 @@ Windows Registry Editor Version 5.00
 "Desktop"="Default"
 
 [HKEY_CURRENT_USER\Software\Wine\Explorer\Desktops]
-"Default"="3840x2160"
+"Default"="1920x1080"

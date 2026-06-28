@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-size="${1:-${VIRTUAL_DESKTOP_SIZE:-3840x2160}}"
+size="${1:-${VIRTUAL_DESKTOP_SIZE:-1920x1080}}"
 case "$size" in
   [0-9]*x[0-9]*) ;;
   *)
