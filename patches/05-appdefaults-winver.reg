@@ -1,0 +1,14 @@
+Windows Registry Editor Version 5.00
+
+; Report Windows 10 to the MapleStory client, the Nexon Steam connector, and its
+; helper, so the launcher/anti-cheat handoff sees a supported OS version.
+; Mirrors the known-working reference prefix.
+
+[HKEY_CURRENT_USER\Software\Wine\AppDefaults\MapleStory.exe]
+"Version"="win10"
+
+[HKEY_CURRENT_USER\Software\Wine\AppDefaults\nxsteam.exe]
+"Version"="win10"
+
+[HKEY_CURRENT_USER\Software\Wine\AppDefaults\SteamConnectorHelper.exe]
+"Version"="win10"

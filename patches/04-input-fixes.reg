@@ -1,0 +1,16 @@
+Windows Registry Editor Version 5.00
+
+; In-game keyboard/mouse input fix. MapleStory uses DirectInput8 and needs raw
+; Linux input events (evdev scancodes) for skill keys (Q/W/E/R, Alt+1-5) and the
+; mouse to register correctly. Distinct from the alt-tab UseTakeFocus fix (01).
+; Mirrors the known-working reference prefix.
+
+[HKEY_CURRENT_USER\Software\Wine\DirectInput]
+"UseLinuxInputEvents"="Y"
+"KeyboardUseNonExclusive"="Y"
+"MouseUseNonExclusive"="Y"
+
+[HKEY_CURRENT_USER\Software\Wine\X11 Driver]
+"Grab"="N"
+"GrabFullscreen"="N"
+"UseLinuxInputEvents"="Y"

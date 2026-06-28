@@ -343,6 +343,8 @@ preflight_bundle() {
   require_file "$PATCH_DIR/90-disable-virtual-desktop.reg"
   require_file "$PATCH_DIR/10-nexon-launcher-protocol.reg"
   require_file "$PATCH_DIR/11-wine-direct3d-dll-overrides.reg"
+  require_file "$PATCH_DIR/04-input-fixes.reg"
+  require_file "$PATCH_DIR/05-appdefaults-winver.reg"
   require_file "$PATCH_DIR/13-apply-runtime-file-patches.sh"
   require_file "$PATCH_DIR/make-virtual-desktop-patch.sh"
   if [ "$APPLY_FKEYS" -eq 1 ]; then
@@ -479,6 +481,8 @@ apply_runtime_registry() {
   [ "$APPLY_RUNTIME" -eq 1 ] || return 0
   reg_import "$PATCH_DIR/10-nexon-launcher-protocol.reg" 'URL:nxl protocol'
   reg_import "$PATCH_DIR/11-wine-direct3d-dll-overrides.reg" 'cb_access_map_w'
+  reg_import "$PATCH_DIR/04-input-fixes.reg" '"UseLinuxInputEvents"'
+  reg_import "$PATCH_DIR/05-appdefaults-winver.reg" '"Version"="win10"'
 }
 
 
