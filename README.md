@@ -6,13 +6,39 @@ This repo documents and automates the Linux/Proton setup used to run the Steam W
 
 ## Why MapleStory doesn't just work (and what this installer does)
 
-Out of the box, the Steam Windows build of MapleStory hits three blockers under Proton:
+MapleStory is a Windows game. On Linux, Steam runs it through **Proton** (a
+compatibility layer that translates Windows programs to Linux). But Proton isn't
+a perfect Windows impersonator — a few things it gets wrong break MapleStory
+right at launch. This installer patches those three things so the game can start:
 
-1. **`0xc0000005` launch crash** — Wine's `kernelbase.dll` dereferences a NULL pointer in `CharPrevExA` right after the Nexon launcher hands off to the game client. The installer byte-patches `kernelbase.dll` (and `win32u.so` for two `SPI_SET*` accessibility calls that return failure) in the **GE-Proton11-1** tool to fix this. These patches are build-specific — stock Proton or any other GE build is skipped, and the crash returns.
-2. **Missing VC++ runtime** — the game expects the macOS-bottle VC++ 2022 runtime (including `vcruntime140_threads.dll`, which the game's own redist omits). The installer copies the runtime DLLs (both 32- and 64-bit) from `files/vc_runtime/` into the prefix's `system32`/`syswow64`.
-3. **Wine environment mismatches** — the Nexon launcher needs a `nxl:` protocol handler, DirectInput needs non-exclusive input mode + `/dev/input/event*` access (system `input` group), the game expects Windows 10, and some XWayland compositors crash on window creation (`BadWindow`/`X_CreateWindow`). The installer imports registry patches for all of these (`01-usetakefocus`, `04-input-fixes`, `05-appdefaults-winver`, `10-nexon-launcher-protocol`, `11-wine-direct3d-dll-overrides`) and offers the Wine virtual desktop (`--virtual-desktop`) for the `BadWindow` case.
+1. **A crash on startup (`0xc0000005`)** — a bug in Wine's translation code
+   causes the game to crash the moment the Nexon launcher hands off to the game
+   client. The installer patches the two Wine files responsible
+   (`kernelbase.dll` and `win32u.so`) inside the **GE-Proton11-1** Proton tool to
+   fix it. These patches only work on that exact build — stock Proton or any
+   other version is skipped, and the crash comes back.
+2. **Missing C++ runtime** — the game needs a set of Microsoft C++ library files
+   (the VC++ 2022 runtime, including `vcruntime140_threads.dll`, which the game's
+   own installer forgets to install). The installer copies these into the right
+   Windows system folders inside the Proton prefix.
+3. **Wine environment mismatches** — the Nexon launcher expects a `nxl:` link
+   handler to be registered, the game's keyboard input needs special settings
+   and membership in your system's `input` group, the game expects to be running
+   on Windows 10, and some Linux desktops (Wayland compositors like Hyprland)
+   crash when the game tries to create its window. The installer imports the
+   registry patches for all of these and offers the Wine virtual desktop
+   (`--virtual-desktop`) as a workaround for the window-creation crash.
 
-It also sets the app-name mapping (`.mappings.ini`), Nexon Launcher locale (`apps-settings.db`), and — on Apple-compatible keyboards — flips `hid_apple fnmode=2` so `F1`–`F12` reach the game.
+It also writes the app-name mapping, sets the launcher locale to English, and —
+on Apple-compatible keyboards — switches the top row so `F1`–`F12` reach the
+game instead of media keys.
+
+**What it does *not* do:** this installer does not touch, disable, or bypass
+Nexon Game Security (`NGClient64.aes` / `BlackCipher`). The anti-cheat still
+runs alongside the game, just like on Windows. The installer only fixes the
+Wine/runtime/prefix mismatches above so the normal Steam launch can get past
+them — if NGS later rejects the Linux environment, that is outside this tool's
+scope.
 
 ![Screenshot](screen.png)
 
