@@ -2,7 +2,17 @@
 
 <img src="maplestorylinux.png" alt="MapleStory Linux icon" width="200">
 
-This repo documents and automates the Linux/Proton setup used to run the Steam Windows build of MapleStory. The launch fixes have been upstreamed (see above); this installer is the stopgap until they land in a GE-Proton release.
+This repo documents and automates the Linux/Proton setup used to run the Steam Windows build of MapleStory. The launch fixes have been upstreamed (see below); this installer is the stopgap until they land in a GE-Proton release.
+
+## Why MapleStory doesn't just work (and what this installer does)
+
+Out of the box, the Steam Windows build of MapleStory hits three blockers under Proton:
+
+1. **`0xc0000005` launch crash** — Wine's `kernelbase.dll` dereferences a NULL pointer in `CharPrevExA` right after the Nexon launcher hands off to the game client. The installer byte-patches `kernelbase.dll` (and `win32u.so` for two `SPI_SET*` accessibility calls that return failure) in the **GE-Proton11-1** tool to fix this. These patches are build-specific — stock Proton or any other GE build is skipped, and the crash returns.
+2. **Missing VC++ runtime** — the game expects the macOS-bottle VC++ 2022 runtime (including `vcruntime140_threads.dll`, which the game's own redist omits). The installer copies the runtime DLLs (both 32- and 64-bit) from `files/vc_runtime/` into the prefix's `system32`/`syswow64`.
+3. **Wine environment mismatches** — the Nexon launcher needs a `nxl:` protocol handler, DirectInput needs non-exclusive input mode + `/dev/input/event*` access (system `input` group), the game expects Windows 10, and some XWayland compositors crash on window creation (`BadWindow`/`X_CreateWindow`). The installer imports registry patches for all of these (`01-usetakefocus`, `04-input-fixes`, `05-appdefaults-winver`, `10-nexon-launcher-protocol`, `11-wine-direct3d-dll-overrides`) and offers the Wine virtual desktop (`--virtual-desktop`) for the `BadWindow` case.
+
+It also sets the app-name mapping (`.mappings.ini`), Nexon Launcher locale (`apps-settings.db`), and — on Apple-compatible keyboards — flips `hid_apple fnmode=2` so `F1`–`F12` reach the game.
 
 ![Screenshot](screen.png)
 
