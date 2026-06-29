@@ -352,6 +352,8 @@ to restore it. If relaunching still closes after the Nexon Launcher, the logs be
    ~/.local/share/Steam/steamapps/compatdata/216150/pfx/drive_c/users/steamuser/AppData/LocalLow/Nexon/
    ```
 
+   On a **secondary Steam library**, replace `~/.local/share/Steam` with your library root (e.g. `/mnt/ssd0/steam`).
+
 Also tell us your **compositor / desktop** (KDE, Hyprland, Gamescope, Mint-on-XWayland, …) — several crashes are compositor-specific. And if you ran an older version of this installer before it verified `.reg` imports, re-run the current `./install.sh` once; a silently-failed registry import is itself a crash cause.
 
 ## Notes
