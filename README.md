@@ -61,7 +61,12 @@ This patch does not touch the anticheat at all and in fact it still runs along s
 1. Install Steam.
 2. Install MapleStory from Steam.
 3. In Steam, open MapleStory properties:
-   - Compatibility: force Proton/GE-Proton if needed.
+   - Compatibility: force **GE-Proton11-1** (not stock Proton). Install it via
+     [ProtonUp-Qt](https://github.com/DavidoTek/ProtonUp-Qt) or extract a
+     [proton-ge-custom release](https://github.com/GloriousEggroll/proton-ge-custom/releases)
+     tarball to `~/.local/share/Steam/compatibilitytools.d/GE-Proton11-1/`.
+     The Wine binary patches that fix the `0xc0000005` launch crash are
+     build-specific to GE-Proton11-1; stock Proton will skip them.
 4. Launch MapleStory once from Steam so Proton creates the prefix:
 5. Close MapleStory before applying patches.
 
@@ -105,14 +110,27 @@ library root that holds the game prefix:
 
 ```bash
 ./install.sh --steam-root /mnt/ssd0/steam \
-  --proton "/mnt/ssd0/steam/steamapps/common/Proton 11.0/proton"
+  --proton "/mnt/ssd0/steam/compatibilitytools.d/GE-Proton11-1/proton"
 ```
+
+> **Use GE-Proton11-1, not stock Proton 11.** The Wine binary patches that fix
+> the `0xc0000005` launch crash are **build-specific** — they only apply when the
+> Proton version string matches `*GE-Proton11-1*`. With stock Proton (e.g.
+> `proton-11.0-1-beta5`) the installer prints `Skipping Wine binary patches ...
+> is not GE-Proton11-1` and the game will not get past the launcher. Install
+> GE-Proton11-1 (via [ProtonUp-Qt](https://github.com/DavidoTek/ProtonUp-Qt) or
+> download the tarball from
+> [proton-ge-custom releases](https://github.com/GloriousEggroll/proton-ge-custom/releases)
+> and extract it to `$STEAM_ROOT/compatibilitytools.d/`), select it as MapleStory's
+> compatibility tool, launch once to create the prefix, then re-run the installer
+> pointing at its `proton` binary.
 
 `--steam-root` sets both the prefix path (`$STEAM_ROOT/steamapps/compatdata/216150`)
 and the common dir (`$STEAM_ROOT/steamapps/common`). You can also pass
 `--prefix-dir /mnt/ssd0/steam/steamapps/compatdata/216150` alone if you only need
-to redirect the prefix. Always pass `--proton` too when your Proton tool lives
-under that library rather than under `compatibilitytools.d`.
+to redirect the prefix. `--proton` is required whenever the Proton tool isn't
+found under `$STEAM_ROOT/compatibilitytools.d/` by the name in the prefix's
+`version` file — always point it at the GE-Proton11-1 `proton` binary.
 
 ## F1-F12 / function-key hardware mode
 
