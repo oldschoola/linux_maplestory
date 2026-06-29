@@ -11,12 +11,13 @@ compatibility layer that translates Windows programs to Linux). But Proton isn't
 a perfect Windows impersonator — a few things it gets wrong break MapleStory
 right at launch. This installer patches those three things so the game can start:
 
-1. **A crash on startup (`0xc0000005`)** — a bug in Wine's translation code
+1. **A crash on startup (`0xc0000005`)** — a bug in Wine's `kernelbase.dll`
    causes the game to crash the moment the Nexon launcher hands off to the game
-   client. The installer patches the two Wine files responsible
-   (`kernelbase.dll` and `win32u.so`) inside the **GE-Proton11-1** Proton tool to
-   fix it. These patches only work on that exact build — stock Proton or any
-   other version is skipped, and the crash comes back.
+   client. The installer byte-patches `kernelbase.dll` inside the
+   **GE-Proton11-1** Proton tool to fix it. A second patch to `win32u.so` fixes
+   two accessibility calls (sticky/filter keys) that Wine returns as failures and
+   the game doesn't expect. These patches only work on that exact build — stock
+   Proton or any other version is skipped, and the crash comes back.
 2. **Missing C++ runtime** — the game needs a set of Microsoft C++ library files
    (the VC++ 2022 runtime, including `vcruntime140_threads.dll`, which the game's
    own installer forgets to install). The installer copies these into the right
