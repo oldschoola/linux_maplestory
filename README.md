@@ -23,12 +23,13 @@ right at launch. This installer patches those three things so the game can start
    own installer forgets to install). The installer copies these into the right
    Windows system folders inside the Proton prefix.
 3. **Wine environment mismatches** — the Nexon launcher expects a `nxl:` link
-   handler to be registered, the game's keyboard input needs special settings
-   and membership in your system's `input` group, and the game expects to be
-   running on Windows 10. The installer imports registry patches for all of
-   these so the game can start properly. Separately, some Linux desktops
-   (Wayland compositors) can crash when the game creates its window
-   (`BadWindow`/`X_CreateWindow`) — the installer offers the Wine virtual
+   handler to be registered, the game's keyboard input needs special settings,
+   and the game expects to be running on Windows 10. The installer imports the
+   registry patches for all of these so the game can start properly. It also
+   adds you to the system `input` group (and prompts for your sudo password)
+   so the keyboard settings can actually read your input devices. Separately,
+   some Linux desktops (Wayland compositors) can crash when the game creates its
+   window (`BadWindow`/`X_CreateWindow`) — the installer offers the Wine virtual
    desktop (`--virtual-desktop`) as an opt-in workaround for that case. It is
    off by default; many users (including some on Hyprland) run fine without it.
 
