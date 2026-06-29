@@ -213,6 +213,9 @@ Do not copy/share another user's whole Steam config or Proton prefix.
 
 Use this only if you do not want the all-in-one installer.
 
+> **Secondary Steam library?** The snippets below hardcode `STEAM_ROOT="$HOME/.local/share/Steam"`.
+> If MapleStory is on another library (e.g. `/mnt/ssd0/steam`), set `STEAM_ROOT` to that library root and `PROTON` to the actual GE-Proton11-1 `proton` binary (usually under the **client root** `~/.local/share/Steam/compatibilitytools.d/`, not the game library). Or just run `./install.sh --steam-root /mnt/ssd0/steam --proton /path/to/GE-Proton11-1/proton`, which handles all of this.
+
 ```bash
 cd /path/to/linux_maplestory
 
