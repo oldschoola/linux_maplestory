@@ -54,9 +54,12 @@ test -d "$STEAM_ROOT/steamapps/compatdata/216150/pfx/drive_c" || \
   echo "Launch MapleStory once from Steam first, then re-run."
 ./install.sh            # runtime DLLs + app-name/locale settings + registry patches + Wine binary patches to GE-Proton11-1
 # (if on a secondary library: ./install.sh --steam-root /mnt/ssd0/steam
-#  --proton /mnt/ssd0/steam/compatibilitytools.d/GE-Proton11-1/proton)
+#  --proton /path/to/GE-Proton11-1/proton)
 #  — use GE-Proton11-1, NOT stock Proton 11; the byte-patches that fix the
 #  0xc0000005 launch crash are build-specific and skip on any other build.
+#  The GE-Proton11-1 proton binary is usually under the CLIENT root
+#  (~/.local/share/Steam/compatibilitytools.d/), not the game library —
+#  point --proton at its actual path.
 ```
 
 Key `install.sh` flags you will use while retrying:

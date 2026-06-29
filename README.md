@@ -110,7 +110,7 @@ library root that holds the game prefix:
 
 ```bash
 ./install.sh --steam-root /mnt/ssd0/steam \
-  --proton "/mnt/ssd0/steam/compatibilitytools.d/GE-Proton11-1/proton"
+  --proton /path/to/GE-Proton11-1/proton
 ```
 
 > **Use GE-Proton11-1, not stock Proton 11.** The Wine binary patches that fix
@@ -121,16 +121,23 @@ library root that holds the game prefix:
 > GE-Proton11-1 (via [ProtonUp-Qt](https://github.com/DavidoTek/ProtonUp-Qt) or
 > download the tarball from
 > [proton-ge-custom releases](https://github.com/GloriousEggroll/proton-ge-custom/releases)
-> and extract it to `$STEAM_ROOT/compatibilitytools.d/`), select it as MapleStory's
-> compatibility tool, launch once to create the prefix, then re-run the installer
-> pointing at its `proton` binary.
+> and extract it), select it as MapleStory's compatibility tool, launch once to
+> create the prefix, then re-run the installer pointing at its `proton` binary.
 
 `--steam-root` sets both the prefix path (`$STEAM_ROOT/steamapps/compatdata/216150`)
 and the common dir (`$STEAM_ROOT/steamapps/common`). You can also pass
 `--prefix-dir /mnt/ssd0/steam/steamapps/compatdata/216150` alone if you only need
-to redirect the prefix. `--proton` is required whenever the Proton tool isn't
-found under `$STEAM_ROOT/compatibilitytools.d/` by the name in the prefix's
-`version` file — always point it at the GE-Proton11-1 `proton` binary.
+to redirect the prefix.
+
+`--proton` points at the **GE-Proton11-1** `proton` binary. Its location depends
+on where you installed it — common paths:
+- `~/.local/share/Steam/compatibilitytools.d/GE-Proton11-1/proton` (ProtonUp-Qt default; client root, NOT the game library)
+- `/mnt/ssd0/steam/compatibilitytools.d/GE-Proton11-1/proton` (if you extracted it under the secondary library)
+
+Custom GE tools are usually installed under the Steam **client root**
+(`~/.local/share/Steam/compatibilitytools.d/`), not the game library — even when
+the game prefix lives on another drive. If `--proton` is omitted, the installer
+tries to resolve it from the prefix's `version` file under `$STEAM_ROOT/compatibilitytools.d/`.
 
 ## F1-F12 / function-key hardware mode
 
