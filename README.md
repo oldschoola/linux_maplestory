@@ -2,7 +2,15 @@
 
 <img src="maplestorylinux.png" alt="MapleStory Linux icon" width="200">
 
+
+EDIT: This patch has been merged with GE-Proton11-3
+https://github.com/GloriousEggroll/proton-ge-custom/releases/tag/GE-Proton11-3
+
+
 This repo documents and automates the Linux/Proton setup used to run the Steam Windows build of MapleStory. The launch fixes have been upstreamed (see below); this installer is the stopgap until they land in a GE-Proton release.
+
+
+
 
 ## Why MapleStory doesn't just work (and what this installer does)
 
